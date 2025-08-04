@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MUSIC</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+  <header>
+    <h1>NO NAME YET</h1>
+    <nav>
+      <a href="{{ url_for('index') }}">Home</a> |
+      <a href="{{ url_for('upload') }}">Upload</a> |
+      {% if session.get('admin') %}
+        <a href="{{ url_for('logout') }}">Logout</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">Login</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="{{ url_for('static', filename='js/player.js') }}"></script>
+
+</body>
+</html>

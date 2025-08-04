@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>Uploaded Songs</h2>
+<ul id="song-list">
+  {% for song in songs %}
+    <li class="song-item"
+        data-url="{{ url_for('static', filename='uploads/' + song.filename) }}"
+        data-title="{{ song.filename }}">
+        {{ song.filename }}
+    </li>
+  {% endfor %}
+</ul>
+
+<!-- Global player -->
+<div id="global-player">
+  <p> <span id="now-playing">No song playing</span></p>
+  <audio id="audio-player" controls>
+    Your browser does not support the audio element.
+  </audio>
+</div>
+{% endblock %}

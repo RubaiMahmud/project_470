@@ -1,0 +1,60 @@
+body {
+  font-family: Arial, sans-serif;
+  
+  background: #f9f9f9;
+}
+
+header {
+  margin-bottom: 20px;
+}
+
+nav a {
+  margin-right: 30px;
+}
+
+.song-list {
+  list-style: none;
+  padding-left: 50px;
+  padding-bottom: 50px;
+}
+
+.song-list li {
+  margin-bottom: 20px;
+  background: #fff;
+  padding: 50px;
+  border-radius: 5px;
+}
+
+#player-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 150%;
+  background: #222;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  gap: 20px;
+  z-index: 100;
+}
+
+#now-playing {
+  flex: 1;
+}
+
+#progress-bar, #volume-bar {
+  height: 50px;
+  flex: 1;
+}
+
+#global-player {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background-color: #acacac;
+  padding: 5px;
+  
+  text-align: center;
+  z-index: 100;
+}

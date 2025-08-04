@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block content %}
+<head>
+  <title>Upload Music</title>
+</head>
+
+<h2>Upload New Song</h2>
+<form method="POST" enctype="multipart/form-data">
+    <label>Title:</label><br>
+    <input type="text" name="title" required><br><br>
+
+    <label>Artist:</label><br>
+    <input type="text" name="artist" required><br><br>
+
+    <label>Genre:</label><br>
+    <input type="text" name="genre" required><br><br>
+
+    <label>File:</label><br>
+    <input type="file" name="file" accept=".mp3,.flac,.wav" required><br><br>
+    
+    <button type="submit">Upload</button>
+
+</form>
+<br><a href="{{ url_for('logout') }}">Logout</a>
+
+{% endblock %}
