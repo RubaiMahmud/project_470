@@ -2,28 +2,92 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>MUSIC</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WavePlay - Music Streaming</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-  <header>
-    <h1>NO NAME YET</h1>
-    <nav>
-      <a href="{{ url_for('index') }}">Home</a> |
-      <a href="{{ url_for('upload') }}">Upload</a> |
-      {% if session.get('admin') %}
-        <a href="{{ url_for('logout') }}">Logout</a>
-      {% else %}
-        <a href="{{ url_for('login') }}">Login</a>
-      {% endif %}
-    </nav>
+  <!-- Top Navigation -->
+  <header class="main-header">
+    <div class="nav-container">
+      <div class="logo">
+        <i class="fas fa-music"></i>
+        <span>WavePlay</span>
+      </div>
+      
+      <nav class="main-nav">
+        <a href="{{ url_for('index') }}" class="nav-link active">Home</a>
+        <a href="#" class="nav-link">Search</a>
+        <a href="#" class="nav-link">Library</a>
+        <a href="#" class="nav-link">Playlists</a>
+        {% if session.admin %}
+          <a href="{{ url_for('upload') }}" class="nav-link">Upload</a>
+        {% endif %}
+      </nav>
+      
+      <div class="nav-actions">
+        {% if session.admin %}
+          <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+        {% else %}
+          <a href="{{ url_for('login') }}" class="login-btn">Admin Login</a>
+        {% endif %}
+      </div>
+    </div>
   </header>
 
-  <main>
+  <!-- Main Content -->
+  <main class="main-content">
     {% block content %}{% endblock %}
   </main>
 
-  <script src="{{ url_for('static', filename='js/player.js') }}"></script>
+  <!-- Bottom Music Player -->
+  <div id="bottom-player">
+    <div class="player-container">
+      <div class="player-left">
+        <div class="track-info">
+          <i class="fas fa-music track-icon"></i>
+          <div class="track-details">
+            <span id="current-title">Nothing playing</span>
+            <span id="current-artist">Select a song to start listening</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="player-center">
+        <div class="player-controls">
+          <button class="control-btn"><i class="fas fa-step-backward"></i></button>
+          <button class="play-pause-btn" id="main-play-btn">
+            <i class="fas fa-play"></i>
+          </button>
+          <button class="control-btn"><i class="fas fa-step-forward"></i></button>
+        </div>
+        
+        <div class="progress-container">
+          <span class="time-display" id="current-time">0:00</span>
+          <div class="progress-bar">
+            <div class="progress-fill"></div>
+            <div class="progress-handle"></div>
+          </div>
+          <span class="time-display" id="duration">0:00</span>
+        </div>
+      </div>
+      
+      <div class="player-right">
+        <div class="volume-container">
+          <i class="fas fa-volume-up"></i>
+          <div class="volume-slider">
+            <div class="volume-fill"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Hidden audio element -->
+    <audio id="audio-player" preload="metadata"></audio>
+  </div>
 
+  <script src="{{ url_for('static', filename='js/player.js') }}"></script>
 </body>
 </html>

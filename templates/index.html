@@ -1,21 +1,75 @@
 {% extends "layout.html" %}
 {% block content %}
-<h2>Uploaded Songs</h2>
-<ul id="song-list">
-  {% for song in songs %}
-    <li class="song-item"
-        data-url="{{ url_for('static', filename='uploads/' + song.filename) }}"
-        data-title="{{ song.filename }}">
-        {{ song.filename }}
-    </li>
-  {% endfor %}
-</ul>
+<!-- Hero Section -->
+<section class="hero-section">
+  <div class="hero-content">
+    <h1 class="hero-title">Feel the Wave. Play Your Music.</h1>
+    <p class="hero-subtitle">A delightful music streaming experience with a premium player, quick search, playlists, and favorites. No setup required to start listening.</p>
+    
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="playRandomSong()">
+        <i class="fas fa-play"></i>
+        Play something
+      </button>
+      <button class="btn-secondary">
+        <i class="fas fa-search"></i>
+        Search music
+      </button>
+    </div>
+  </div>
+</section>
 
-<!-- Global player -->
-<div id="global-player">
-  <p> <span id="now-playing">No song playing</span></p>
-  <audio id="audio-player" controls>
-    Your browser does not support the audio element.
-  </audio>
-</div>
+<!-- Featured Section -->
+<section class="featured-section">
+  <div class="section-header">
+    <h2>Featured</h2>
+  </div>
+  
+  <div class="music-grid">
+    {% for song in songs %}
+    <div class="music-card" 
+         data-url="{{ url_for('stream_audio', file_id=song.file_id) }}"
+         data-title="{{ song.title }}"
+         data-artist="{{ song.artist }}"
+         data-genre="{{ song.genre }}">
+      <div class="music-card-image">
+        <div class="album-art">
+          <i class="fas fa-music"></i>
+        </div>
+        <div class="play-overlay">
+          <button class="card-play-btn" onclick="playFromCard(this)">
+            <i class="fas fa-play"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div class="music-card-content">
+        <h3 class="song-title">{{ song.title }}</h3>
+        <p class="song-meta">{{ song.artist }} • {{ song.genre }}</p>
+        
+        <div class="card-actions">
+          <button class="action-btn favorite-btn">
+            <i class="far fa-heart"></i>
+            Favorite
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  
+  {% if not songs %}
+  <div class="empty-state">
+    <i class="fas fa-music"></i>
+    <h3>No music yet</h3>
+    <p>Upload some songs to get started!</p>
+    {% if session.admin %}
+      <a href="{{ url_for('upload') }}" class="btn-primary">
+        <i class="fas fa-upload"></i>
+        Upload Music
+      </a>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
 {% endblock %}
