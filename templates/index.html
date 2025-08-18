@@ -63,7 +63,8 @@
     <i class="fas fa-music"></i>
     <h3>No music yet</h3>
     <p>Upload some songs to get started!</p>
-    {% if session.admin %}
+    <!-- Update this condition -->
+    {% if current_user.is_authenticated and current_user.is_admin %}
       <a href="{{ url_for('upload') }}" class="btn-primary">
         <i class="fas fa-upload"></i>
         Upload Music
