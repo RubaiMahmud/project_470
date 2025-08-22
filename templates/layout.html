@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-  <!-- Top Navigation -->
   <header class="main-header">
     <div class="nav-container">
       <div class="logo">
@@ -18,23 +17,24 @@
       </div>
       
       <nav class="main-nav">
-        <a href="{{ url_for('index') }}" class="nav-link active">Home</a>
-        <a href="#" class="nav-link">Search</a>
-        <a href="#" class="nav-link">Library</a>
+        <a href="{{ url_for('index') }}" class="nav-link">Home</a>
+        <a href="{{ url_for('search') }}" class="nav-link">Search</a>
+        <a href="{{ url_for('library') }}" class="nav-link">Library</a>
         <a href="#" class="nav-link">Playlists</a>
-        <!-- Show Upload link only if user is an admin -->
         {% if current_user.is_authenticated and current_user.is_admin %}
           <a href="{{ url_for('upload') }}" class="nav-link">Upload</a>
         {% endif %}
       </nav>
-      
+      <form class="nav-search" method="POST" action="{{ url_for('search') }}">
+        <input type="search" name="query" placeholder="Search for songs, artists..." required>
+        <button type="submit"><i class="fas fa-search"></i></button>
+      </form>
+
       <div class="nav-actions">
-        <!-- Show Logout if user is logged in -->
         {% if current_user.is_authenticated %}
           <span class="welcome-user">Hi, {{ current_user.username }}</span>
           <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
         {% else %}
-          <!-- Show Login and Register if user is not logged in -->
           <a href="{{ url_for('login') }}" class="login-btn">Login</a>
           <a href="{{ url_for('register') }}" class="register-btn">Register</a>
         {% endif %}
@@ -42,14 +42,10 @@
     </div>
   </header>
 
-  <!-- Main Content -->
   <main class="main-content">
     {% block content %}{% endblock %}
   </main>
-
-  <!-- Bottom Music Player -->
   <div id="bottom-player">
-      <!-- ... (rest of your player code remains the same) ... -->
       <div class="player-container">
         <div class="player-left">
           <div class="track-info">

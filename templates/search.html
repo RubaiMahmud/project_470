@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+{% block content %}
+<section class="featured-section">
+  <div class="section-header">
+    {% if query %}
+      <h2>Search Results for "{{ query }}"</h2>
+    {% else %}
+      <h2>Search for Music</h2>
+      <p class="search-prompt">Enter a song title, artist, or genre in the search bar above to find music.</p>
+    {% endif %}
+  </div>
+  
+  <div class="music-grid">
+    {% for song in songs %}
+    <div class="music-card" 
+         data-url="{{ url_for('stream_audio', file_id=song.file_id) }}"
+         data-title="{{ song.title }}"
+         data-artist="{{ song.artist }}"
+         data-genre="{{ song.genre }}"
+         data-song-id="{{ song.id }}">
+      <div class="music-card-image">
+        <div class="album-art">
+          <i class="fas fa-music"></i>
+        </div>
+        <div class="play-overlay">
+          <button class="card-play-btn"> {# REMOVED onclick #}
+            <i class="fas fa-play"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div class="music-card-content">
+        <h3 class="song-title">{{ song.title }}</h3>
+        <p class="song-meta">{{ song.artist }} • {{ song.genre }}</p>
+        
+        <div class="card-actions">
+          {% set is_liked = song.id|string in liked_song_ids|map('string') %}
+          <button class="action-btn favorite-btn {{ 'liked' if is_liked }}"> {# ADDED liked class #}
+            <i class="{{ 'fas' if is_liked else 'far' }} fa-heart"></i>
+            Favorite
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  
+  {% if query and not songs %}
+  <div class="empty-state">
+    <i class="fas fa-search"></i>
+    <h3>No Results Found</h3>
+    <p>We couldn't find any songs matching your search for "{{ query }}".</p>
+    <p>Try searching for something else!</p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
