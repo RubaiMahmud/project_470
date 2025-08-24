@@ -2,8 +2,8 @@
 {% block content %}
 <section class="hero-section">
   <div class="hero-content">
-    <h1 class="hero-title">Feel the Wave. Play Your Music.</h1>
-    <p class="hero-subtitle">A delightful music streaming experience with a premium player, quick search, playlists, and favorites. No setup required to start listening.</p>
+    <h1 class="hero-title">Play Your Music.</h1>
+    <p class="hero-subtitle"> </p>
     <div class="hero-actions">
       <button class="btn-primary" onclick="playRandomSong()"><i class="fas fa-play"></i> Play something</button>
       
@@ -37,7 +37,7 @@
           {% set is_liked = song.id|string in liked_song_ids|map('string') %}
           <button class="action-btn favorite-btn {{ 'liked' if is_liked }}"> {# ADDED liked class #}
             <i class="{{ 'fas' if is_liked else 'far' }} fa-heart"></i>
-            Favorite
+            
           </button>
           {% if current_user.is_authenticated and current_user.is_admin %}
             <form method="POST" action="{{ url_for('delete_song', song_id=song.id) }}" onsubmit="return confirm('Are you sure?');">
