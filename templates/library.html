@@ -25,20 +25,36 @@
              data-url="{{ url_for('stream_audio', file_id=song.file_id) }}"
              data-title="{{ song.title }}"
              data-artist="{{ song.artist }}"
+             data-album="{{ song.album or '' }}"
+             data-album-art-id="{{ song.album_art_id or '' }}"
              data-song-id="{{ song.id }}">
           <div class="song-item-art"> {# REMOVED onclick #}
-            <i class="fas fa-music"></i>
+            {% if song.album_art_id %}
+              <img src="{{ url_for('serve_album_art', file_id=song.album_art_id) }}" alt="{{ song.album or song.title }} Album Art">
+            {% else %}
+              <i class="fas fa-music"></i>
+            {% endif %}
             <div class="play-overlay-list"><i class="fas fa-play"></i></div>
           </div>
           <div class="song-item-details">
             <h4 class="song-title">{{ song.title }}</h4>
-            <p class="song-meta">{{ song.artist }}</p>
+            <p class="song-meta">
+              <a href="{{ url_for('artist_page', artist_name=song.artist|urlencode) }}" class="artist-link">{{ song.artist }}</a>{% if song.album %} • {{ song.album }}{% endif %}
+            </p>
           </div>
           <div class="song-item-actions">
             {% set is_liked = song.id|string in liked_song_ids|map('string') %}
             <button class="action-btn favorite-btn {{ 'liked' if is_liked }}"> {# ADDED liked class #}
               <i class="{{ 'fas' if is_liked else 'far' }} fa-heart"></i>
             </button>
+            {% if current_user.is_authenticated and current_user.is_admin %}
+              <a href="{{ url_for('edit_song', song_id=song.id) }}" class="action-btn edit-btn">
+                <i class="fas fa-edit"></i>
+              </a>
+              <form method="POST" action="{{ url_for('delete_song', song_id=song.id) }}" onsubmit="return confirm('Are you sure?');" style="display: inline;">
+                <button type="submit" class="action-btn delete-btn"><i class="fas fa-trash"></i></button>
+              </form>
+            {% endif %}
           </div>
         </div>
       {% else %}

@@ -1,0 +1,86 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="admin-page">
+  <div class="admin-header">
+    <div class="admin-title-section">
+      <h1><i class="fas fa-users"></i> Artist Management</h1>
+      <p class="admin-subtitle">Manage artist information and photos</p>
+    </div>
+    <div class="admin-actions">
+      <a href="{{ url_for('admin_create_artist') }}" class="btn-primary">
+        <i class="fas fa-plus"></i> Add New Artist
+      </a>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
+          <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' }}"></i>
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <div class="artists-grid">
+    {% for artist in artists %}
+    <div class="artist-card-admin">
+      <div class="artist-card-image">
+        {% if artist.photo_id %}
+          <img src="{{ url_for('serve_artist_photo', file_id=artist.photo_id) }}" alt="{{ artist.name }} Photo">
+        {% else %}
+          <div class="artist-placeholder">
+            <i class="fas fa-user-music"></i>
+          </div>
+        {% endif %}
+      </div>
+      
+      <div class="artist-card-content">
+        <h3 class="artist-name">{{ artist.name }}</h3>
+        <div class="artist-stats">
+          <span class="stat-item">
+            <i class="fas fa-music"></i>
+            {{ artist.get_song_count() }} songs
+          </span>
+          <span class="stat-item">
+            <i class="fas fa-compact-disc"></i>
+            {{ artist.get_album_count() }} albums
+          </span>
+        </div>
+        
+        {% if artist.description %}
+          <p class="artist-description-preview">{{ artist.description[:100] }}{% if artist.description|length > 100 %}...{% endif %}</p>
+        {% else %}
+          <p class="no-description">No description available</p>
+        {% endif %}
+        
+        <div class="artist-actions">
+          <a href="{{ url_for('artist_page', artist_name=artist.name|urlencode) }}" class="action-btn view-btn">
+            <i class="fas fa-eye"></i> View
+          </a>
+          <a href="{{ url_for('admin_edit_artist', artist_id=artist.id) }}" class="action-btn edit-btn">
+            <i class="fas fa-edit"></i> Edit
+          </a>
+          <form method="POST" action="{{ url_for('admin_delete_artist', artist_id=artist.id) }}" onsubmit="return confirm('Are you sure you want to delete {{ artist.name }}? This action cannot be undone.');" style="display: inline;">
+            <button type="submit" class="action-btn delete-btn">
+              <i class="fas fa-trash"></i> Delete
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <i class="fas fa-user-plus"></i>
+      <h3>No Artists Yet</h3>
+      <p>Start by adding your first artist to the system.</p>
+      <a href="{{ url_for('admin_create_artist') }}" class="btn-primary">
+        <i class="fas fa-plus"></i> Add First Artist
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -22,7 +22,15 @@
         <a href="{{ url_for('library') }}" class="nav-link">Library</a>
         <a href="#" class="nav-link">Playlists</a>
         {% if current_user.is_authenticated and current_user.is_admin %}
-          <a href="{{ url_for('upload') }}" class="nav-link">Upload</a>
+          <div class="nav-dropdown">
+            <a href="{{ url_for('upload') }}" class="nav-link dropdown-toggle">Upload <i class="fas fa-chevron-down"></i></a>
+            <div class="dropdown-menu">
+              <a href="{{ url_for('admin_uploads') }}" class="dropdown-item"><i class="fas fa-list"></i> Manage Uploads</a>
+              <div class="dropdown-divider"></div>
+              <a href="{{ url_for('upload') }}" class="dropdown-item"><i class="fas fa-music"></i> Single Song</a>
+              <a href="{{ url_for('upload_album') }}" class="dropdown-item"><i class="fas fa-compact-disc"></i> Album</a>
+            </div>
+          </div>
         {% endif %}
       </nav>
       <form class="nav-search" method="POST" action="{{ url_for('search') }}">
@@ -49,7 +57,9 @@
       <div class="player-container">
         <div class="player-left">
           <div class="track-info">
-            <i class="fas fa-music track-icon"></i>
+            <div class="track-art" id="player-track-art">
+              <i class="fas fa-music track-icon"></i>
+            </div>
             <div class="track-details">
               <span id="current-title">Nothing playing</span>
               <span id="current-artist">Select a song to start listening</span>
@@ -58,11 +68,11 @@
         </div>
         <div class="player-center">
           <div class="player-controls">
-            <button class="control-btn"><i class="fas fa-step-backward"></i></button>
+            <button class="control-btn" id="prev-song-btn"><i class="fas fa-step-backward"></i></button>
             <button class="play-pause-btn" id="main-play-btn">
               <i class="fas fa-play"></i>
             </button>
-            <button class="control-btn"><i class="fas fa-step-forward"></i></button>
+            <button class="control-btn" id="next-song-btn"><i class="fas fa-step-forward"></i></button>
           </div>
           <div class="progress-container">
             <span class="time-display" id="current-time">0:00</span>

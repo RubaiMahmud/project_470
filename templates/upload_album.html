@@ -1,0 +1,205 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="upload-container">
+  <div class="upload-form">
+    <h2><i class="fas fa-compact-disc"></i> Upload Album</h2>
+    <p class="upload-description">Upload multiple songs as an album with shared metadata.</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
+            <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' }}"></i>
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    
+    <form method="POST" enctype="multipart/form-data" id="album-upload-form">
+      <!-- Album-wide metadata -->
+      <div class="album-metadata">
+        <h3><i class="fas fa-info-circle"></i> Album Information</h3>
+        
+        <div class="form-group">
+          <label for="artist">
+            <i class="fas fa-user"></i>
+            Artist Name
+          </label>
+          <input type="text" id="artist" name="artist" placeholder="Enter artist name" required>
+        </div>
+
+        <div class="form-group">
+          <label for="album">
+            <i class="fas fa-compact-disc"></i>
+            Album Name
+          </label>
+          <input type="text" id="album" name="album" placeholder="Enter album name" required>
+        </div>
+
+        <div class="form-group">
+          <label for="genre">
+            <i class="fas fa-tags"></i>
+            Genre
+          </label>
+          <input type="text" id="genre" name="genre" placeholder="Enter genre" required>
+        </div>
+
+        <div class="form-group">
+          <label for="album_art">
+            <i class="fas fa-image"></i>
+            Album Art
+          </label>
+          <input type="file" id="album_art" name="album_art" accept=".png,.jpg,.jpeg,.gif,.webp,.svg">
+          <small class="form-help">Upload album artwork for all songs (PNG, JPG, JPEG, GIF, WebP, SVG)</small>
+        </div>
+
+        <div class="form-group">
+          <label for="artist_description">
+            <i class="fas fa-user-tag"></i>
+            Artist Description (Optional)
+          </label>
+          <textarea id="artist_description" name="artist_description" placeholder="Enter artist biography or description..." rows="4"></textarea>
+          <small class="form-help">Provide information about the artist that users can view</small>
+        </div>
+      </div>
+
+      <!-- File selection -->
+      <div class="files-section">
+        <h3><i class="fas fa-file-audio"></i> Audio Files</h3>
+        
+        <div class="form-group">
+          <label for="files">
+            <i class="fas fa-file-audio"></i>
+            Select Audio Files
+          </label>
+          <input type="file" id="files" name="files" accept=".mp3,.flac,.wav" multiple required>
+          <small class="form-help">Select multiple audio files (MP3, FLAC, WAV). Hold Ctrl/Cmd to select multiple files.</small>
+        </div>
+      </div>
+
+      <!-- Dynamic song titles -->
+      <div class="songs-section" id="songs-section" style="display: none;">
+        <h3><i class="fas fa-list"></i> Song Titles</h3>
+        <p class="section-help">Customize individual song titles or leave blank to use filenames.</p>
+        <div id="songs-list"></div>
+      </div>
+      
+      <div class="form-actions">
+        <button type="submit" class="btn-primary upload-btn">
+          <i class="fas fa-cloud-upload-alt"></i>
+          Upload Album
+        </button>
+        <a href="{{ url_for('upload') }}" class="btn-secondary cancel-btn">
+          <i class="fas fa-arrow-left"></i>
+          Single Upload
+        </a>
+      </div>
+    </form>
+    
+    <div class="upload-info">
+      <p><i class="fas fa-info-circle"></i> All songs will share the same artist, album, and genre information.</p>
+      <p><i class="fas fa-info-circle"></i> Supported audio formats: MP3, FLAC, WAV</p>
+      <p><i class="fas fa-info-circle"></i> Supported image formats: PNG, JPG, JPEG, GIF, WebP, SVG</p>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filesInput = document.getElementById('files');
+    const songsSection = document.getElementById('songs-section');
+    const songsList = document.getElementById('songs-list');
+    const form = document.getElementById('album-upload-form');
+    
+    filesInput.addEventListener('change', function() {
+        const files = Array.from(this.files);
+        
+        if (files.length === 0) {
+            songsSection.style.display = 'none';
+            return;
+        }
+        
+        // Validate file types
+        const allowedTypes = ['.mp3', '.flac', '.wav'];
+        const invalidFiles = files.filter(file => {
+            const extension = '.' + file.name.split('.').pop().toLowerCase();
+            return !allowedTypes.includes(extension);
+        });
+        
+        if (invalidFiles.length > 0) {
+            alert(`Invalid file types detected: ${invalidFiles.map(f => f.name).join(', ')}\nOnly MP3, FLAC, and WAV files are allowed.`);
+            this.value = ''; // Clear the input
+            songsSection.style.display = 'none';
+            return;
+        }
+        
+        // Show file count
+        const fileCountInfo = document.createElement('p');
+        fileCountInfo.className = 'file-count-info';
+        fileCountInfo.innerHTML = `<i class="fas fa-info-circle"></i> Selected ${files.length} audio file${files.length > 1 ? 's' : ''}`;
+        
+        // Show songs section
+        songsSection.style.display = 'block';
+        
+        // Clear existing song inputs
+        songsList.innerHTML = '';
+        songsList.appendChild(fileCountInfo);
+        
+        // Create input for each file
+        files.forEach((file, index) => {
+            const songDiv = document.createElement('div');
+            songDiv.className = 'song-item';
+            
+            const fileName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
+            const fileSize = (file.size / (1024 * 1024)).toFixed(2); // Convert to MB
+            
+            songDiv.innerHTML = `
+                <div class="form-group">
+                    <label for="title_${index}">
+                        <i class="fas fa-music"></i>
+                        Song ${index + 1}: ${file.name} (${fileSize} MB)
+                    </label>
+                    <input type="text" id="title_${index}" name="title_${index}" 
+                           placeholder="${fileName}" value="${fileName}">
+                </div>
+            `;
+            
+            songsList.appendChild(songDiv);
+        });
+    });
+    
+    // Form submission handling
+    form.addEventListener('submit', function(e) {
+        const files = filesInput.files;
+        const artist = document.getElementById('artist').value;
+        const album = document.getElementById('album').value;
+        const genre = document.getElementById('genre').value;
+        
+        if (!files.length) {
+            e.preventDefault();
+            alert('Please select at least one audio file.');
+            return;
+        }
+        
+        if (!artist.trim() || !album.trim() || !genre.trim()) {
+            e.preventDefault();
+            alert('Please fill in all required album information.');
+            return;
+        }
+        
+        // Show uploading state
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading Album...';
+        submitBtn.disabled = true;
+        
+        // Re-enable button if form submission fails
+        setTimeout(() => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }, 30000); // 30 second timeout
+    });
+});
+</script>
+{% endblock %}

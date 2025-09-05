@@ -3,6 +3,7 @@
 <div class="upload-container">
   <div class="upload-form">
     <h2><i class="fas fa-upload"></i> Upload New Song</h2>
+    <p class="upload-description">Upload a single song with individual metadata.</p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -41,21 +42,54 @@
       </div>
 
       <div class="form-group">
+        <label for="album">
+          <i class="fas fa-compact-disc"></i>
+          Album Name
+        </label>
+        <input type="text" id="album" name="album" placeholder="Enter album name">
+      </div>
+
+      <div class="form-group">
         <label for="file">
           <i class="fas fa-file-audio"></i>
           Audio File
         </label>
         <input type="file" id="file" name="file" accept=".mp3,.flac,.wav" required>
       </div>
+
+      <div class="form-group">
+        <label for="album_art">
+          <i class="fas fa-image"></i>
+          Album Art (Optional)
+        </label>
+        <input type="file" id="album_art" name="album_art" accept=".png,.jpg,.jpeg,.gif,.webp,.svg">
+        <small class="form-help">Upload album artwork (PNG, JPG, JPEG, GIF, WebP, SVG)</small>
+      </div>
+
+      <div class="form-group">
+        <label for="artist_description">
+          <i class="fas fa-user-tag"></i>
+          Artist Description (Optional)
+        </label>
+        <textarea id="artist_description" name="artist_description" placeholder="Enter artist biography or description..." rows="4"></textarea>
+        <small class="form-help">Provide information about the artist that users can view</small>
+      </div>
       
-      <button type="submit" class="btn-primary upload-btn">
-        <i class="fas fa-cloud-upload-alt"></i>
-        Upload Song
-      </button>
+      <div class="form-actions">
+        <button type="submit" class="btn-primary upload-btn">
+          <i class="fas fa-cloud-upload-alt"></i>
+          Upload Song
+        </button>
+        <a href="{{ url_for('upload_album') }}" class="btn-secondary cancel-btn">
+          <i class="fas fa-compact-disc"></i>
+          Upload Album
+        </a>
+      </div>
     </form>
     
     <div class="upload-info">
-      <p><i class="fas fa-info-circle"></i> Supported formats: MP3, FLAC, WAV</p>
+      <p><i class="fas fa-info-circle"></i> Supported audio formats: MP3, FLAC, WAV</p>
+      <p><i class="fas fa-info-circle"></i> Supported image formats: PNG, JPG, JPEG, GIF, WebP, SVG</p>
     </div>
   </div>
 </div>

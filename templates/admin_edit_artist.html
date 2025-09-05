@@ -1,0 +1,110 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="upload-container">
+  <div class="upload-form">
+    <h2>
+      <i class="fas fa-{{ 'edit' if artist else 'user-plus' }}"></i> 
+      {{ 'Edit Artist' if artist else 'Add New Artist' }}
+    </h2>
+    <p class="upload-description">
+      {{ 'Update artist information and photo' if artist else 'Create a new artist profile with photo and description' }}
+    </p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
+            <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' }}"></i>
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    
+    {% if artist %}
+    <!-- Current artist info display -->
+    <div class="current-artist-info">
+      <h3>Current Artist Information</h3>
+      <div class="artist-preview">
+        <div class="artist-preview-photo">
+          {% if artist.photo_id %}
+            <img src="{{ url_for('serve_artist_photo', file_id=artist.photo_id) }}" alt="{{ artist.name }} Photo">
+          {% else %}
+            <i class="fas fa-user-music"></i>
+          {% endif %}
+        </div>
+        <div class="artist-preview-details">
+          <h4>{{ artist.name }}</h4>
+          <div class="artist-stats">
+            <span class="stat-item">
+              <i class="fas fa-music"></i>
+              {{ artist.get_song_count() }} songs
+            </span>
+            <span class="stat-item">
+              <i class="fas fa-compact-disc"></i>
+              {{ artist.get_album_count() }} albums
+            </span>
+          </div>
+          {% if artist.description %}
+            <p class="description-preview">{{ artist.description[:150] }}{% if artist.description|length > 150 %}...{% endif %}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    
+    <form method="POST" enctype="multipart/form-data">
+      <div class="form-group">
+        <label for="name">
+          <i class="fas fa-user"></i>
+          Artist Name
+        </label>
+        <input type="text" id="name" name="name" value="{{ artist.name if artist else '' }}" placeholder="Enter artist name" required>
+      </div>
+
+      <div class="form-group">
+        <label for="description">
+          <i class="fas fa-align-left"></i>
+          Artist Description
+        </label>
+        <textarea id="description" name="description" placeholder="Enter artist biography, background, or description..." rows="6">{{ artist.description if artist else '' }}</textarea>
+        <small class="form-help">Provide detailed information about the artist that users can view on the artist page</small>
+      </div>
+
+      <div class="form-group">
+        <label for="photo">
+          <i class="fas fa-image"></i>
+          {{ 'Update Artist Photo' if artist else 'Artist Photo' }} (Optional)
+        </label>
+        <input type="file" id="photo" name="photo" accept=".png,.jpg,.jpeg,.gif,.webp,.svg">
+        <small class="form-help">
+          {% if artist %}
+            Upload a new photo to replace the current one (PNG, JPG, JPEG, GIF, WebP, SVG)
+          {% else %}
+            Upload an artist photo (PNG, JPG, JPEG, GIF, WebP, SVG)
+          {% endif %}
+        </small>
+      </div>
+      
+      <div class="form-actions">
+        <button type="submit" class="btn-primary upload-btn">
+          <i class="fas fa-{{ 'save' if artist else 'plus' }}"></i>
+          {{ 'Update Artist' if artist else 'Create Artist' }}
+        </button>
+        <a href="{{ url_for('admin_artists') }}" class="btn-secondary cancel-btn">
+          <i class="fas fa-times"></i>
+          Cancel
+        </a>
+      </div>
+    </form>
+    
+    <div class="upload-info">
+      <p><i class="fas fa-info-circle"></i> Artist information will be displayed on the artist page for users to view</p>
+      <p><i class="fas fa-info-circle"></i> Supported image formats: PNG, JPG, JPEG, GIF, WebP, SVG</p>
+      {% if artist %}
+        <p><i class="fas fa-info-circle"></i> Updating artist information will affect all songs by this artist</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

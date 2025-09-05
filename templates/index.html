@@ -22,17 +22,27 @@
          data-url="{{ url_for('stream_audio', file_id=song.file_id) }}"
          data-title="{{ song.title }}"
          data-artist="{{ song.artist }}"
+         data-album="{{ song.album or '' }}"
          data-genre="{{ song.genre }}"
+         data-album-art-id="{{ song.album_art_id or '' }}"
          data-song-id="{{ song.id }}">
       <div class="music-card-image">
-        <div class="album-art"><i class="fas fa-music"></i></div>
+        {% if song.album_art_id %}
+          <div class="album-art">
+            <img src="{{ url_for('serve_album_art', file_id=song.album_art_id) }}" alt="{{ song.album or song.title }} Album Art">
+          </div>
+        {% else %}
+          <div class="album-art"><i class="fas fa-music"></i></div>
+        {% endif %}
         <div class="play-overlay">
           <button class="card-play-btn"><i class="fas fa-play"></i></button> {# REMOVED onclick #}
         </div>
       </div>
       <div class="music-card-content">
         <h3 class="song-title">{{ song.title }}</h3>
-        <p class="song-meta">{{ song.artist }} • {{ song.genre }}</p>
+        <p class="song-meta">
+          <a href="{{ url_for('artist_page', artist_name=song.artist|urlencode) }}" class="artist-link">{{ song.artist }}</a>{% if song.album %} • {{ song.album }}{% endif %} • {{ song.genre }}
+        </p>
         <div class="card-actions">
           {% set is_liked = song.id|string in liked_song_ids|map('string') %}
           <button class="action-btn favorite-btn {{ 'liked' if is_liked }}"> {# ADDED liked class #}
@@ -40,6 +50,9 @@
             
           </button>
           {% if current_user.is_authenticated and current_user.is_admin %}
+            <a href="{{ url_for('edit_song', song_id=song.id) }}" class="action-btn edit-btn">
+              <i class="fas fa-edit"></i> Edit
+            </a>
             <form method="POST" action="{{ url_for('delete_song', song_id=song.id) }}" onsubmit="return confirm('Are you sure?');">
               <button type="submit" class="action-btn delete-btn"><i class="fas fa-trash"></i> Delete</button>
             </form>

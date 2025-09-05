@@ -1,0 +1,663 @@
+{% extends "layout.html" %}
+{% block content %}
+<style>
+.artist-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.artist-header {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  backdrop-filter: blur(10px);
+}
+
+.artist-info {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.artist-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 3rem;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.artist-avatar.editable {
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.artist-avatar.editable:hover {
+  transform: scale(1.05);
+}
+
+.artist-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.edit-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 50%;
+}
+
+.artist-avatar.editable:hover .edit-overlay {
+  opacity: 1;
+}
+
+.artist-details h1 {
+  margin: 0 0 1rem 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.artist-stats {
+  display: flex;
+  gap: 2rem;
+  color: #e5e7eb;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.artist-description {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.artist-description h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.5rem;
+}
+
+.artist-info-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.info-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.info-icon {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.2rem;
+}
+
+.info-content h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  color: #e5e7eb;
+}
+
+.info-number {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: white;
+}
+
+.info-label {
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+
+.info-status {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #10b981;
+}
+
+.genre-tags h3 {
+  margin: 0 0 1rem 0;
+  color: #e5e7eb;
+}
+
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.genre-tag {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.artist-albums {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.albums-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.album-chip {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 0.75rem 1.25rem;
+  border-radius: 25px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.artist-songs {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.artist-songs h2 {
+  margin: 0 0 2rem 0;
+  font-size: 1.5rem;
+}
+
+/* Modal Styles */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal-content {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 1rem;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.form-help {
+  display: block;
+  margin-top: 0.25rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+}
+
+.modal-actions {
+  padding: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #10b981;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #059669;
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+@media (max-width: 768px) {
+  .artist-info {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .artist-stats {
+    justify-content: center;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-content {
+    width: 95%;
+    margin: 1rem;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+}
+</style>
+
+<div class="artist-page">
+  <div class="artist-header">
+    <div class="artist-info">
+      <div class="artist-avatar{{ ' editable' if current_user.is_authenticated and current_user.is_admin else '' }}" {% if current_user.is_authenticated and current_user.is_admin %}onclick="openEditModal()" title="Click to edit artist"{% endif %}>
+        {% set artist_data = artist.name|get_artist_data %}
+        {% if artist_data and artist_data.photo_id %}
+          <img src="{{ url_for('serve_artist_photo', file_id=artist_data.photo_id) }}" alt="{{ artist.name }} Photo">
+        {% else %}
+          <i class="fas fa-user-music"></i>
+        {% endif %}
+        {% if current_user.is_authenticated and current_user.is_admin %}
+          <div class="edit-overlay">
+            <i class="fas fa-edit"></i>
+          </div>
+        {% endif %}
+      </div>
+      <div class="artist-details">
+        <h1 class="artist-name">{{ artist.name }}</h1>
+        <div class="artist-stats">
+          <span class="stat-item">
+            <i class="fas fa-music"></i>
+            {{ artist.total_songs }} song{{ 's' if artist.total_songs != 1 else '' }}
+          </span>
+          {% if artist.albums %}
+            <span class="stat-item">
+              <i class="fas fa-compact-disc"></i>
+              {{ artist.albums|length }} album{{ 's' if artist.albums|length != 1 else '' }}
+            </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% set artist_data = artist.name|get_artist_data %}
+  {% if artist.description or (artist_data and artist_data.description) %}
+    <div class="artist-description">
+      <h2>About {{ artist.name }}</h2>
+      <p>{{ artist_data.description if artist_data and artist_data.description else artist.description }}</p>
+    </div>
+  {% endif %}
+
+  <div class="artist-info-section">
+    <h2>Artist Information</h2>
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="info-icon">
+          <i class="fas fa-music"></i>
+        </div>
+        <div class="info-content">
+          <h3>Total Songs</h3>
+          <p class="info-number">{{ artist.total_songs }}</p>
+          <span class="info-label">Track{{ 's' if artist.total_songs != 1 else '' }} available</span>
+        </div>
+      </div>
+      
+      {% if artist.albums %}
+      <div class="info-card">
+        <div class="info-icon">
+          <i class="fas fa-compact-disc"></i>
+        </div>
+        <div class="info-content">
+          <h3>Albums</h3>
+          <p class="info-number">{{ artist.albums|length }}</p>
+          <span class="info-label">Release{{ 's' if artist.albums|length != 1 else '' }} in catalog</span>
+        </div>
+      </div>
+      {% endif %}
+      
+      <div class="info-card">
+        <div class="info-icon">
+          <i class="fas fa-tags"></i>
+        </div>
+        <div class="info-content">
+          <h3>Genres</h3>
+          <p class="info-number">{{ artist.songs|map(attribute='genre')|unique|list|length }}</p>
+          <span class="info-label">Musical style{{ 's' if artist.songs|map(attribute='genre')|unique|list|length != 1 else '' }}</span>
+        </div>
+      </div>
+      
+      {% set artist_data = artist.name|get_artist_data %}
+      <div class="info-card">
+        <div class="info-icon">
+          <i class="fas fa-calendar-alt"></i>
+        </div>
+        <div class="info-content">
+          <h3>Profile</h3>
+          <p class="info-status">{{ 'Enhanced' if artist_data and artist_data.photo_id else 'Basic' }}</p>
+          <span class="info-label">{{ 'Complete artist profile' if artist_data and artist_data.photo_id else 'Standard profile' }}</span>
+        </div>
+      </div>
+    </div>
+    
+    {% if artist.songs|map(attribute='genre')|unique|list|length > 0 %}
+    <div class="genre-tags">
+      <h3>Musical Genres</h3>
+      <div class="tags-container">
+        {% for genre in artist.songs|map(attribute='genre')|unique|list %}
+          <span class="genre-tag">
+            <i class="fas fa-music"></i>
+            {{ genre }}
+          </span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if artist.albums %}
+    <div class="artist-albums">
+      <h2>Albums</h2>
+      <div class="albums-list">
+        {% for album in artist.albums %}
+          <div class="album-chip">
+            <i class="fas fa-compact-disc"></i>
+            {{ album }}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="artist-songs">
+    <h2>Songs by {{ artist.name }}</h2>
+    <div class="music-grid">
+      {% for song in artist.songs %}
+      <div class="music-card" 
+           data-url="{{ url_for('stream_audio', file_id=song.file_id) }}"
+           data-title="{{ song.title }}"
+           data-artist="{{ song.artist }}"
+           data-album="{{ song.album or '' }}"
+           data-genre="{{ song.genre }}"
+           data-album-art-id="{{ song.album_art_id or '' }}"
+           data-song-id="{{ song.id }}">
+        <div class="music-card-image">
+          {% if song.album_art_id %}
+            <div class="album-art">
+              <img src="{{ url_for('serve_album_art', file_id=song.album_art_id) }}" alt="{{ song.album or song.title }} Album Art">
+            </div>
+          {% else %}
+            <div class="album-art"><i class="fas fa-music"></i></div>
+          {% endif %}
+          <div class="play-overlay">
+            <button class="card-play-btn">
+              <i class="fas fa-play"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div class="music-card-content">
+          <h3 class="song-title">{{ song.title }}</h3>
+          <p class="song-meta">
+            <a href="{{ url_for('artist_page', artist_name=song.artist|urlencode) }}" class="artist-link">{{ song.artist }}</a>{% if song.album %} • {{ song.album }}{% endif %} • {{ song.genre }}
+          </p>
+          
+          <div class="card-actions">
+            {% set is_liked = song.id|string in liked_song_ids|map('string') %}
+            <button class="action-btn favorite-btn {{ 'liked' if is_liked }}">
+              <i class="{{ 'fas' if is_liked else 'far' }} fa-heart"></i>
+            </button>
+            {% if current_user.is_authenticated and current_user.is_admin %}
+              <a href="{{ url_for('edit_song', song_id=song.id) }}" class="action-btn edit-btn">
+                <i class="fas fa-edit"></i> Edit
+              </a>
+              <form method="POST" action="{{ url_for('delete_song', song_id=song.id) }}" onsubmit="return confirm('Are you sure?');" style="display: inline;">
+                <button type="submit" class="action-btn delete-btn"><i class="fas fa-trash"></i></button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% if current_user.is_authenticated and current_user.is_admin %}
+<!-- Artist Edit Modal -->
+<div id="editArtistModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3><i class="fas fa-edit"></i> Edit Artist</h3>
+      <button class="close-btn" onclick="closeEditModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <form id="editArtistForm" enctype="multipart/form-data">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="artistName">
+            <i class="fas fa-user"></i>
+            Artist Name
+          </label>
+          <input type="text" id="artistName" name="name" value="{{ artist.name }}" required>
+        </div>
+
+        <div class="form-group">
+          <label for="artistDescription">
+            <i class="fas fa-align-left"></i>
+            Artist Description
+          </label>
+          <textarea id="artistDescription" name="description" rows="4" placeholder="Enter artist biography or description...">{% set artist_data = artist.name|get_artist_data %}{{ artist_data.description if artist_data and artist_data.description else (artist.description or '') }}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="artistPhoto">
+            <i class="fas fa-image"></i>
+            Artist Photo
+          </label>
+          <input type="file" id="artistPhoto" name="photo" accept=".png,.jpg,.jpeg,.gif">
+          <small class="form-help">Upload a new photo to replace the current one (PNG, JPG, JPEG, GIF)</small>
+        </div>
+      </div>
+      
+      <div class="modal-actions">
+        <button type="submit" class="btn-primary">
+          <i class="fas fa-save"></i> Save Changes
+        </button>
+        <button type="button" class="btn-secondary" onclick="closeEditModal()">
+          <i class="fas fa-times"></i> Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% if current_user.is_authenticated and current_user.is_admin %}
+<script>
+function openEditModal() {
+  document.getElementById('editArtistModal').style.display = 'flex';
+}
+
+function closeEditModal() {
+  document.getElementById('editArtistModal').style.display = 'none';
+}
+
+// Handle form submission
+document.getElementById('editArtistForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  
+  const formData = new FormData(this);
+  const submitBtn = this.querySelector('button[type="submit"]');
+  const originalText = submitBtn.innerHTML;
+  
+  // Show loading state
+  submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+  submitBtn.disabled = true;
+  
+  try {
+    const response = await fetch('{{ url_for("update_artist_info", artist_name=artist.name|urlencode) }}', {
+      method: 'POST',
+      body: formData
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      // Reload the page to show updated information
+      window.location.reload();
+    } else {
+      alert('Error: ' + (result.message || 'Failed to update artist information'));
+      // Restore button state
+      submitBtn.innerHTML = originalText;
+      submitBtn.disabled = false;
+    }
+  } catch (error) {
+    console.error('Error updating artist:', error);
+    alert('Error updating artist information. Please try again.');
+    // Restore button state
+    submitBtn.innerHTML = originalText;
+    submitBtn.disabled = false;
+  }
+});
+
+// Close modal when clicking outside
+document.getElementById('editArtistModal').addEventListener('click', function(e) {
+  if (e.target === this) {
+    closeEditModal();
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

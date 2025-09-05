@@ -1,0 +1,106 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="upload-container">
+  <div class="upload-form">
+    <h2><i class="fas fa-edit"></i> Edit Song</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">
+            <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' }}"></i>
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    
+    <!-- Current song info display -->
+    <div class="current-song-info">
+      <h3>Current Song Information</h3>
+      <div class="song-preview">
+        <div class="song-preview-art">
+          {% if song.album_art_id %}
+            <img src="{{ url_for('serve_album_art', file_id=song.album_art_id) }}" alt="Current Album Art">
+          {% else %}
+            <i class="fas fa-music"></i>
+          {% endif %}
+        </div>
+        <div class="song-preview-details">
+          <h4>{{ song.title }}</h4>
+          <p>{{ song.artist }}{% if song.album %} • {{ song.album }}{% endif %}</p>
+          <p class="genre-tag">{{ song.genre }}</p>
+        </div>
+      </div>
+    </div>
+    
+    <form method="POST" enctype="multipart/form-data">
+      <div class="form-group">
+        <label for="title">
+          <i class="fas fa-music"></i>
+          Song Title
+        </label>
+        <input type="text" id="title" name="title" value="{{ song.title }}" placeholder="Enter song title" required>
+      </div>
+
+      <div class="form-group">
+        <label for="artist">
+          <i class="fas fa-user"></i>
+          Artist
+        </label>
+        <input type="text" id="artist" name="artist" value="{{ song.artist }}" placeholder="Enter artist name" required>
+      </div>
+
+      <div class="form-group">
+        <label for="genre">
+          <i class="fas fa-tags"></i>
+          Genre
+        </label>
+        <input type="text" id="genre" name="genre" value="{{ song.genre }}" placeholder="Enter genre" required>
+      </div>
+
+      <div class="form-group">
+        <label for="album">
+          <i class="fas fa-compact-disc"></i>
+          Album Name
+        </label>
+        <input type="text" id="album" name="album" value="{{ song.album or '' }}" placeholder="Enter album name">
+      </div>
+
+      <div class="form-group">
+        <label for="album_art">
+          <i class="fas fa-image"></i>
+          Update Album Art (Optional)
+        </label>
+        <input type="file" id="album_art" name="album_art" accept=".png,.jpg,.jpeg,.gif,.webp">
+        <small class="form-help">Upload new album artwork to replace current image (PNG, JPG, JPEG, GIF, WebP)</small>
+      </div>
+
+      <div class="form-group">
+        <label for="artist_description">
+          <i class="fas fa-user-tag"></i>
+          Artist Description (Optional)
+        </label>
+        <textarea id="artist_description" name="artist_description" placeholder="Enter artist biography or description..." rows="4">{{ song.artist_description or '' }}</textarea>
+        <small class="form-help">Provide information about the artist that users can view</small>
+      </div>
+      
+      <div class="form-actions">
+        <button type="submit" class="btn-primary upload-btn">
+          <i class="fas fa-save"></i>
+          Update Song
+        </button>
+        <a href="{{ request.referrer or url_for('index') }}" class="btn-secondary cancel-btn">
+          <i class="fas fa-times"></i>
+          Cancel
+        </a>
+      </div>
+    </form>
+    
+    <div class="upload-info">
+      <p><i class="fas fa-info-circle"></i> Note: Only song information will be updated. The audio file cannot be changed.</p>
+      <p><i class="fas fa-info-circle"></i> Supported image formats: PNG, JPG, JPEG, GIF, WebP</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

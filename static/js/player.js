@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mainPlayBtn = document.getElementById('main-play-btn');
     const currentTitle = document.getElementById('current-title');
     const currentArtist = document.getElementById('current-artist');
+    const currentTrackArt = document.getElementById('player-track-art');
     const currentTimeDisplay = document.getElementById('current-time');
     const durationDisplay = document.getElementById('duration');
     const progressBar = document.querySelector('.progress-bar');
@@ -17,6 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let isPlaying = false;
     let isDraggingProgress = false;
     let isDraggingVolume = false;
+    let dragStartTime = 0;
+    let dragStartPos = { x: 0, y: 0 };
 
     if (!audioPlayer) {
         console.error("Audio player element not found!");
@@ -35,6 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const songUrl = songContainer.dataset.url;
         const songTitle = songContainer.dataset.title;
         const songArtist = songContainer.dataset.artist;
+        const songAlbum = songContainer.dataset.album;
+        const albumArtId = songContainer.dataset.albumArtId;
 
         if (!songUrl || !songTitle) return;
 
@@ -44,8 +49,41 @@ document.addEventListener('DOMContentLoaded', () => {
             audioPlayer.src = songUrl;
             currentSongUrl = songUrl;
             currentTitle.textContent = songTitle;
-            currentArtist.textContent = songArtist;
+            
+            // Update artist info with album if available
+            if (songAlbum && songAlbum.trim()) {
+                currentArtist.textContent = `${songArtist} • ${songAlbum}`;
+            } else {
+                currentArtist.textContent = songArtist;
+            }
+            
+            // Update album art in player
+            updatePlayerAlbumArt(albumArtId);
+            
             audioPlayer.play().catch(e => console.error('Play failed:', e));
+        }
+    }
+
+    function updatePlayerAlbumArt(albumArtId) {
+        if (!currentTrackArt) return;
+        
+        // Clear existing content
+        currentTrackArt.innerHTML = '';
+        
+        if (albumArtId && albumArtId.trim()) {
+            // Create and set album art image
+            const img = document.createElement('img');
+            img.src = `/album_art/${albumArtId}`;
+            img.alt = 'Album Art';
+            img.className = 'player-album-art';
+            img.onerror = function() {
+                // Fallback to music icon if image fails to load
+                currentTrackArt.innerHTML = '<i class="fas fa-music track-icon"></i>';
+            };
+            currentTrackArt.appendChild(img);
+        } else {
+            // Default music icon
+            currentTrackArt.innerHTML = '<i class="fas fa-music track-icon"></i>';
         }
     }
 
@@ -59,6 +97,52 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn("No songs found on the page to play randomly.");
         }
     };
+
+    function playNextSong() {
+        const allSongs = Array.from(document.querySelectorAll('[data-url]'));
+        if (allSongs.length === 0) {
+            console.warn('No songs available to play next');
+            return;
+        }
+
+        if (!currentSongUrl) {
+            // No current song, play the first one
+            playSong(allSongs[0]);
+            return;
+        }
+
+        const currentIndex = allSongs.findIndex(song => song.dataset.url === currentSongUrl);
+        if (currentIndex !== -1) {
+            const nextIndex = (currentIndex + 1) % allSongs.length; // Loop back to first song
+            playSong(allSongs[nextIndex]);
+        } else {
+            // Current song not found, play first song
+            playSong(allSongs[0]);
+        }
+    }
+
+    function playPreviousSong() {
+        const allSongs = Array.from(document.querySelectorAll('[data-url]'));
+        if (allSongs.length === 0) {
+            console.warn('No songs available to play previous');
+            return;
+        }
+
+        if (!currentSongUrl) {
+            // No current song, play the last one
+            playSong(allSongs[allSongs.length - 1]);
+            return;
+        }
+
+        const currentIndex = allSongs.findIndex(song => song.dataset.url === currentSongUrl);
+        if (currentIndex !== -1) {
+            const prevIndex = currentIndex === 0 ? allSongs.length - 1 : currentIndex - 1; // Loop to last song
+            playSong(allSongs[prevIndex]);
+        } else {
+            // Current song not found, play last song
+            playSong(allSongs[allSongs.length - 1]);
+        }
+    }
 
     function togglePlayPause() {
         if (!currentSongUrl) {
@@ -137,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
         volumeHandle.style.left = `${volumePercent}%`;
     }
 
-    //Progress bar
+    //Progress bar functions
     function getProgressPercentage(clientX) {
         const rect = progressBar.getBoundingClientRect();
         let percentage = (clientX - rect.left) / rect.width;
@@ -168,26 +252,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         event.preventDefault();
-        isDraggingProgress = true;
+        event.stopPropagation();
         
-        const clientX = event.clientX || (event.touches && event.touches[0].clientX);
-        if (clientX !== undefined) {
-            const percentage = getProgressPercentage(clientX);
-            updateProgressUI(percentage);
-        }
+        // Record drag start time and position
+        dragStartTime = Date.now();
+        dragStartPos.x = event.clientX || (event.touches && event.touches[0].clientX) || 0;
+        dragStartPos.y = event.clientY || (event.touches && event.touches[0].clientY) || 0;
+        
+        isDraggingProgress = true;
         
         console.log('Started dragging progress');
     }
 
     function startVolumeDrag(event) {
         event.preventDefault();
-        isDraggingVolume = true;
+        event.stopPropagation();
         
-        const clientX = event.clientX || (event.touches && event.touches[0].clientX);
-        if (clientX !== undefined) {
-            const percentage = getVolumePercentage(clientX);
-            audioPlayer.volume = percentage;
-        }
+        // Record drag start time and position
+        dragStartTime = Date.now();
+        dragStartPos.x = event.clientX || (event.touches && event.touches[0].clientX) || 0;
+        dragStartPos.y = event.clientY || (event.touches && event.touches[0].clientY) || 0;
+        
+        isDraggingVolume = true;
         
         console.log('Started dragging volume');
     }
@@ -195,47 +281,77 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleGlobalDrag(event) {
         if (!isDraggingProgress && !isDraggingVolume) return;
         
+        event.preventDefault();
         const clientX = event.clientX || (event.touches && event.touches[0].clientX);
         if (clientX === undefined) return;
 
         if (isDraggingProgress && audioPlayer.duration && !isNaN(audioPlayer.duration)) {
             const percentage = getProgressPercentage(clientX);
+            const newTime = percentage * audioPlayer.duration;
+            audioPlayer.currentTime = newTime;
             updateProgressUI(percentage);
         }
 
         if (isDraggingVolume) {
             const percentage = getVolumePercentage(clientX);
             audioPlayer.volume = percentage;
+            updateVolumeUI();
         }
     }
 
     function stopDrag(event) {
-        if (isDraggingProgress && audioPlayer.duration && !isNaN(audioPlayer.duration)) {
-            const clientX = (event.changedTouches) ? event.changedTouches[0].clientX : event.clientX;
-            if (clientX !== undefined) {
-                const percentage = getProgressPercentage(clientX);
-                const newTime = percentage * audioPlayer.duration;
-                audioPlayer.currentTime = newTime;
-                updateProgressUI(percentage);
+        if (isDraggingProgress || isDraggingVolume) {
+            const dragDuration = Date.now() - dragStartTime;
+            const currentX = event.clientX || (event.changedTouches && event.changedTouches[0].clientX) || 0;
+            const currentY = event.clientY || (event.changedTouches && event.changedTouches[0].clientY) || 0;
+            const dragDistance = Math.sqrt(Math.pow(currentX - dragStartPos.x, 2) + Math.pow(currentY - dragStartPos.y, 2));
+            
+            // If it was a quick click with minimal movement, treat as click
+            if (dragDuration < 200 && dragDistance < 5) {
+                if (isDraggingProgress && audioPlayer.duration && !isNaN(audioPlayer.duration)) {
+                    const percentage = getProgressPercentage(currentX);
+                    const newTime = percentage * audioPlayer.duration;
+                    audioPlayer.currentTime = newTime;
+                    updateProgressUI(percentage);
+                    console.log(`Quick click - seeked to: ${newTime.toFixed(2)}s`);
+                }
                 
-                console.log(`Seeked to: ${newTime.toFixed(2)}s (${(percentage * 100).toFixed(1)}%)`);
+                if (isDraggingVolume) {
+                    const percentage = getVolumePercentage(currentX);
+                    audioPlayer.volume = percentage;
+                    updateVolumeUI();
+                    console.log(`Quick click - volume set to: ${(percentage * 100).toFixed(1)}%`);
+                }
             }
         }
         
-        if (isDraggingProgress) console.log('Stopped dragging progress');
-        if (isDraggingVolume) console.log('Stopped dragging volume');
+        if (isDraggingProgress) {
+            console.log('Stopped dragging progress');
+        }
+        if (isDraggingVolume) {
+            console.log('Stopped dragging volume');
+        }
         
         isDraggingProgress = false;
         isDraggingVolume = false;
     }
 
     function handleProgressBarClick(event) {
-        if (isDraggingProgress) return; 
+        // Only handle clicks if we're not in the middle of a drag operation
+        if (isDraggingProgress) return;
         
         if (!audioPlayer.duration || isNaN(audioPlayer.duration)) {
             console.warn('Cannot seek - no audio duration');
             return;
         }
+        
+        // Check if this is a mousedown event on the handle - don't treat as click
+        if (event.target === progressHandle) {
+            return;
+        }
+        
+        event.preventDefault();
+        event.stopPropagation();
         
         const percentage = getProgressPercentage(event.clientX);
         const newTime = percentage * audioPlayer.duration;
@@ -249,8 +365,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleVolumeClick(event) {
         if (isDraggingVolume) return;
         
+        // Check if this is a mousedown event on the handle - don't treat as click
+        if (event.target === volumeHandle) {
+            return;
+        }
+        
+        event.preventDefault();
+        event.stopPropagation();
+        
         const percentage = getVolumePercentage(event.clientX);
         audioPlayer.volume = percentage;
+        updateVolumeUI();
         
         console.log(`Clicked volume slider - set to: ${(percentage * 100).toFixed(1)}%`);
     }
@@ -295,6 +420,18 @@ document.addEventListener('DOMContentLoaded', () => {
             togglePlayPause();
             return;
         }
+        
+        if (event.target.closest('#next-song-btn')) {
+            event.preventDefault();
+            playNextSong();
+            return;
+        }
+        
+        if (event.target.closest('#prev-song-btn')) {
+            event.preventDefault();
+            playPreviousSong();
+            return;
+        }
     });
 
     audioPlayer.addEventListener('play', onPlay);
@@ -308,21 +445,87 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Audio metadata loaded, duration:', audioPlayer.duration);
     });
     audioPlayer.addEventListener('volumechange', updateVolumeUI);
+    
+    // Update duration display when metadata loads
+    audioPlayer.addEventListener('loadeddata', () => {
+        if (durationDisplay && audioPlayer.duration && !isNaN(audioPlayer.duration)) {
+            durationDisplay.textContent = formatTime(audioPlayer.duration);
+        }
+    });
+    
+    // Ensure progress bar updates when seeking
+    audioPlayer.addEventListener('seeked', () => {
+        if (!isDraggingProgress) {
+            updateProgress();
+        }
+    });
+    
+    // Handle when audio can start playing
+    audioPlayer.addEventListener('canplay', () => {
+        if (durationDisplay && audioPlayer.duration && !isNaN(audioPlayer.duration)) {
+            durationDisplay.textContent = formatTime(audioPlayer.duration);
+        }
+    });
 
+    // Progress bar event listeners
     if (progressBar) {
-        progressBar.addEventListener('mousedown', startProgressDrag);
-        progressBar.addEventListener('touchstart', startProgressDrag, { passive: false });
-        progressBar.addEventListener('click', handleProgressBarClick);
+        // Handle clicking directly on the progress bar (not the handle)
+        progressBar.addEventListener('click', (event) => {
+            // Only handle clicks that aren't on the handle itself
+            if (event.target !== progressHandle && !isDraggingProgress) {
+                handleProgressBarClick(event);
+            }
+        });
+        
+        // Handle dragging specifically on the handle
+        if (progressHandle) {
+            progressHandle.addEventListener('mousedown', startProgressDrag);
+            progressHandle.addEventListener('touchstart', startProgressDrag, { passive: false });
+        }
+        
+        // Also allow dragging when clicking anywhere on the progress bar
+        progressBar.addEventListener('mousedown', (event) => {
+            if (event.target !== progressHandle) {
+                startProgressDrag(event);
+            }
+        });
+        progressBar.addEventListener('touchstart', (event) => {
+            if (event.target !== progressHandle) {
+                startProgressDrag(event);
+            }
+        }, { passive: false });
         
         console.log('Progress bar event listeners attached');
     } else {
         console.error('Progress bar element not found!');
     }
 
+    // Volume slider event listeners
     if (volumeSlider) {
-        volumeSlider.addEventListener('mousedown', startVolumeDrag);
-        volumeSlider.addEventListener('touchstart', startVolumeDrag, { passive: false });
-        volumeSlider.addEventListener('click', handleVolumeClick);
+        volumeSlider.addEventListener('click', (event) => {
+            // Only handle clicks that aren't on the handle itself
+            if (event.target !== volumeHandle && !isDraggingVolume) {
+                handleVolumeClick(event);
+            }
+        });
+        
+        // Handle dragging specifically on the handle
+        if (volumeHandle) {
+            volumeHandle.addEventListener('mousedown', startVolumeDrag);
+            volumeHandle.addEventListener('touchstart', startVolumeDrag, { passive: false });
+        }
+        
+        // Also allow dragging when clicking anywhere on the volume slider
+        volumeSlider.addEventListener('mousedown', (event) => {
+            if (event.target !== volumeHandle) {
+                startVolumeDrag(event);
+            }
+        });
+        volumeSlider.addEventListener('touchstart', (event) => {
+            if (event.target !== volumeHandle) {
+                startVolumeDrag(event);
+            }
+        }, { passive: false });
         
         console.log('Volume slider event listeners attached');
     } else {
@@ -339,6 +542,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.code === 'Space' && event.target.tagName !== 'INPUT') {
             event.preventDefault();
             togglePlayPause();
+        }
+        if (event.code === 'ArrowRight' && event.target.tagName !== 'INPUT') {
+            event.preventDefault();
+            playNextSong();
+        }
+        if (event.code === 'ArrowLeft' && event.target.tagName !== 'INPUT') {
+            event.preventDefault();
+            playPreviousSong();
         }
     });
 
