@@ -3,71 +3,127 @@
 <section class="featured-section">
   <div class="section-header">
     <h2>My Library</h2>
+    <button id="new-playlist-btn" class="btn-primary">
+      <i class="fas fa-plus"></i> New Playlist
+    </button>
   </div>
 
   <div id="playlist-container">
-    <div class="playlist-card-large" onclick="toggleSongList()">
-      <div class="playlist-art">
-        <i class="fas fa-heart"></i>
-      </div>
-      <div class="playlist-info">
-        <h3>Liked Songs</h3>
-        <p>{{ playlists[0].songs|length }} songs</p>
-      </div>
-      <div class="playlist-play-icon">
-        <i class="fas fa-chevron-down"></i>
-      </div>
-    </div>
-
-    <div id="song-list-container" class="song-list-vertical" style="display: none;">
-      {% for song in playlists[0].songs %}
-        <div class="song-list-item" 
-             data-url="{{ url_for('stream_audio', file_id=song.file_id) }}"
-             data-title="{{ song.title }}"
-             data-artist="{{ song.artist }}"
-             data-album="{{ song.album or '' }}"
-             data-album-art-id="{{ song.album_art_id or '' }}"
-             data-song-id="{{ song.id }}">
-          <div class="song-item-art"> {# REMOVED onclick #}
-            {% if song.album_art_id %}
-              <img src="{{ url_for('serve_album_art', file_id=song.album_art_id) }}" alt="{{ song.album or song.title }} Album Art">
+    {% for playlist in playlists %}
+      <div class="playlist-card-large">
+        <div class="playlist-main" onclick="toggleSongList('{{ loop.index0 }}')">
+          <div class="playlist-art">
+            {% if playlist.name == 'Liked Songs' %}
+              <i class="fas fa-heart"></i>
             {% else %}
-              <i class="fas fa-music"></i>
+              <i class="fas fa-list-music"></i>
             {% endif %}
-            <div class="play-overlay-list"><i class="fas fa-play"></i></div>
           </div>
-          <div class="song-item-details">
-            <h4 class="song-title">{{ song.title }}</h4>
-            <p class="song-meta">
-              <a href="{{ url_for('artist_page', artist_name=song.artist|urlencode) }}" class="artist-link">{{ song.artist }}</a>{% if song.album %} • {{ song.album }}{% endif %}
-            </p>
+          <div class="playlist-info">
+            <h3>{{ playlist.name }}</h3>
+            <p>{{ playlist.songs|length }} songs</p>
           </div>
-          <div class="song-item-actions">
-            {% set is_liked = song.id|string in liked_song_ids|map('string') %}
-            <button class="action-btn favorite-btn {{ 'liked' if is_liked }}"> {# ADDED liked class #}
-              <i class="{{ 'fas' if is_liked else 'far' }} fa-heart"></i>
-            </button>
-            {% if current_user.is_authenticated and current_user.is_admin %}
-              <a href="{{ url_for('edit_song', song_id=song.id) }}" class="action-btn edit-btn">
-                <i class="fas fa-edit"></i>
-              </a>
-              <form method="POST" action="{{ url_for('delete_song', song_id=song.id) }}" onsubmit="return confirm('Are you sure?');" style="display: inline;">
-                <button type="submit" class="action-btn delete-btn"><i class="fas fa-trash"></i></button>
-              </form>
-            {% endif %}
+          <div class="playlist-play-icon">
+            <i class="fas fa-chevron-down"></i>
           </div>
         </div>
-      {% else %}
-        <p class="empty-playlist-message">You haven't liked any songs yet.</p>
-      {% endfor %}
-    </div>
+        {% if playlist.name != 'Liked Songs' %}
+          <div class="playlist-actions">
+            <button class="playlist-delete-btn" onclick="deletePlaylist('{{ playlist.id }}', '{{ playlist.name }}')" title="Delete Playlist">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        {% endif %}
+      </div>
+
+      <div id="song-list-container-{{ loop.index0 }}" class="song-list-vertical" style="display: none;">
+        {% for song in playlist.songs %}
+          <div class="song-list-item" 
+               data-url="{{ url_for('stream_audio', file_id=song.file_id) }}"
+               data-title="{{ song.title }}"
+               data-artist="{{ song.artist }}"
+               data-album="{{ song.album or '' }}"
+               data-album-art-id="{{ song.album_art_id or '' }}"
+               data-song-id="{{ song.id }}">
+            <div class="song-item-art">
+              {% if song.album_art_id %}
+                <img src="{{ url_for('serve_album_art', file_id=song.album_art_id) }}" alt="{{ song.album or song.title }} Album Art">
+              {% else %}
+                <i class="fas fa-music"></i>
+              {% endif %}
+              <div class="play-overlay-list"><i class="fas fa-play"></i></div>
+            </div>
+            <div class="song-item-details">
+              <h4 class="song-title">{{ song.title }}</h4>
+              <p class="song-meta">
+                <a href="{{ url_for('artist_page', artist_name=song.artist|urlencode) }}" class="artist-link">{{ song.artist }}</a>{% if song.album %} • {{ song.album }}{% endif %}
+              </p>
+            </div>
+            <div class="song-item-actions">
+              {% set is_liked = song.id|string in liked_song_ids|map('string') %}
+              <div class="favorite-btn-container">
+                <button class="action-btn favorite-btn {{ 'liked' if is_liked }}">
+                  <i class="{{ 'fas' if is_liked else 'far' }} fa-heart"></i>
+                </button>
+                {% if current_user.is_authenticated %}
+                <div class="playlist-dropdown" style="display: none;">
+                  <div class="playlist-dropdown-content">
+                    <div class="playlist-header">Add to Playlist</div>
+                    <div class="playlist-items"></div>
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+              {% if current_user.is_authenticated and current_user.is_admin %}
+                <a href="{{ url_for('edit_song', song_id=song.id) }}" class="action-btn edit-btn">
+                  <i class="fas fa-edit"></i>
+                </a>
+                <form method="POST" action="{{ url_for('delete_song', song_id=song.id) }}" onsubmit="return confirm('Are you sure?');" style="display: inline;">
+                  <button type="submit" class="action-btn delete-btn"><i class="fas fa-trash"></i></button>
+                </form>
+              {% endif %}
+            </div>
+          </div>
+        {% else %}
+          {% if playlist.name == 'Liked Songs' %}
+            <p class="empty-playlist-message">You haven't liked any songs yet.</p>
+          {% else %}
+            <p class="empty-playlist-message">No songs in this playlist yet.</p>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endfor %}
   </div>
 </section>
 
+<!-- Playlist Creation Modal -->
+<div id="playlist-modal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Create New Playlist</h3>
+      <button class="modal-close" onclick="closePlaylistModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <form id="playlist-form">
+        <div class="form-group">
+          <label for="playlist-name">Playlist Name</label>
+          <input type="text" id="playlist-name" name="playlist_name" placeholder="Enter playlist name" required>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" onclick="closePlaylistModal()">Cancel</button>
+          <button type="submit" class="btn-primary">Create Playlist</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
-  function toggleSongList() {
-    const songList = document.getElementById('song-list-container');
-    const icon = document.querySelector('.playlist-play-icon i');
+  function toggleSongList(index) {
+    const songList = document.getElementById(`song-list-container-${index}`);
+    const icon = document.querySelectorAll('.playlist-play-icon i')[index];
     if (songList.style.display === 'none') {
       songList.style.display = 'block';
       icon.classList.remove('fa-chevron-down');
@@ -76,6 +132,96 @@
       songList.style.display = 'none';
       icon.classList.remove('fa-chevron-up');
       icon.classList.add('fa-chevron-down');
+    }
+  }
+
+  function openPlaylistModal() {
+    document.getElementById('playlist-modal').style.display = 'flex';
+    document.getElementById('playlist-name').focus();
+  }
+
+  function closePlaylistModal() {
+    document.getElementById('playlist-modal').style.display = 'none';
+    document.getElementById('playlist-form').reset();
+  }
+
+  // Handle new playlist button click
+  document.getElementById('new-playlist-btn').addEventListener('click', openPlaylistModal);
+
+  // Handle playlist form submission
+  document.getElementById('playlist-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const playlistName = document.getElementById('playlist-name').value.trim();
+    
+    if (!playlistName) {
+      alert('Please enter a playlist name');
+      return;
+    }
+    
+    try {
+      const response = await fetch('/playlist/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name: playlistName })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Reload the page to show the new playlist
+        window.location.reload();
+      } else {
+        alert(result.message || 'Error creating playlist');
+      }
+    } catch (error) {
+      console.error('Error creating playlist:', error);
+      alert('Error creating playlist');
+    }
+  });
+
+  // Close modal when clicking outside
+  document.getElementById('playlist-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      closePlaylistModal();
+    }
+  });
+
+  // Playlist deletion functionality
+  async function deletePlaylist(playlistId, playlistName) {
+    // Prevent the click from bubbling up to toggleSongList
+    event.stopPropagation();
+    
+    // Confirm deletion
+    const confirmed = confirm(`Are you sure you want to delete the playlist "${playlistName}"? This action cannot be undone.`);
+    
+    if (!confirmed) {
+      return;
+    }
+    
+    try {
+      const response = await fetch('/playlist/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ playlist_id: playlistId })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Show success message and reload page
+        alert(`Playlist "${playlistName}" deleted successfully`);
+        window.location.reload();
+      } else {
+        alert(result.message || 'Error deleting playlist');
+      }
+    } catch (error) {
+      console.error('Error deleting playlist:', error);
+      alert('Error deleting playlist');
     }
   }
 </script>

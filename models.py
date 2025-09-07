@@ -68,6 +68,52 @@ class User(UserMixin):
         """Returns a list of song IDs from the user's Liked Songs playlist."""
         playlist = self.get_liked_songs_playlist()
         return playlist.get('songs', [])
+    
+    def add_to_recently_played(self, song_id):
+        """Adds a song to the user's recently played list (limit to 15)."""
+        try:
+            # Remove the song if it already exists to avoid duplicates
+            mongo_db.users_collection.update_one(
+                {'_id': ObjectId(self.id)},
+                {'$pull': {'recently_played': ObjectId(song_id)}}
+            )
+            
+            # Add the song to the beginning of the list
+            mongo_db.users_collection.update_one(
+                {'_id': ObjectId(self.id)},
+                {'$push': {
+                    'recently_played': {
+                        '$each': [ObjectId(song_id)],
+                        '$position': 0,
+                        '$slice': 15  # Keep only the last 15 songs
+                    }
+                }}
+            )
+            return True
+        except Exception as e:
+            print(f"Error adding to recently played: {e}")
+            return False
+    
+    def get_recently_played_songs(self):
+        """Returns the user's recently played songs (up to 15)."""
+        try:
+            user_data = mongo_db.users_collection.find_one({'_id': ObjectId(self.id)})
+            recently_played_ids = user_data.get('recently_played', [])
+            
+            if not recently_played_ids:
+                return []
+            
+            # Get songs while preserving order
+            songs = []
+            for song_id in recently_played_ids:
+                song = Song.get_by_id(str(song_id))
+                if song:  # Only add if song still exists
+                    songs.append(song)
+            
+            return songs
+        except Exception as e:
+            print(f"Error getting recently played songs: {e}")
+            return []
 
     def toggle_like(self, song_id):
         """Adds or removes a song from the 'Liked Songs' playlist."""
@@ -86,7 +132,144 @@ class User(UserMixin):
                 {'_id': liked_playlist['_id']},
                 {'$addToSet': {'songs': song_object_id}} 
             )
-            return True 
+            return True
+    
+    def create_playlist(self, playlist_name):
+        """Creates a new playlist for the user."""
+        try:
+            # Check if playlist with this name already exists for this user
+            existing_playlist = mongo_db.playlists_collection.find_one({
+                'user_id': ObjectId(self.id),
+                'name': playlist_name
+            })
+            
+            if existing_playlist:
+                return None  # Playlist already exists
+            
+            playlist_data = {
+                'user_id': ObjectId(self.id),
+                'name': playlist_name,
+                'songs': [],
+                'created_date': datetime.utcnow()
+            }
+            
+            result = mongo_db.playlists_collection.insert_one(playlist_data)
+            return result.inserted_id
+        except Exception as e:
+            print(f"Error creating playlist: {e}")
+            return None
+    
+    def get_all_playlists(self):
+        """Returns all playlists for the user."""
+        try:
+            playlists = []
+            for playlist_doc in mongo_db.playlists_collection.find({
+                'user_id': ObjectId(self.id)
+            }).sort('name', 1):
+                # Get song details for this playlist
+                songs = Song.get_songs_by_ids(playlist_doc.get('songs', []))
+                
+                playlist = {
+                    'id': str(playlist_doc['_id']),
+                    'name': playlist_doc['name'],
+                    'songs': songs,
+                    'song_count': len(songs),
+                    'created_date': playlist_doc.get('created_date')
+                }
+                playlists.append(playlist)
+            
+            return playlists
+        except Exception as e:
+            print(f"Error getting user playlists: {e}")
+            return []
+    
+    def add_song_to_playlist(self, playlist_id, song_id):
+        """Adds a song to a specific playlist."""
+        try:
+            result = mongo_db.playlists_collection.update_one(
+                {
+                    '_id': ObjectId(playlist_id),
+                    'user_id': ObjectId(self.id)  # Ensure user owns the playlist
+                },
+                {'$addToSet': {'songs': ObjectId(song_id)}}
+            )
+            return result.modified_count > 0
+        except Exception as e:
+            print(f"Error adding song to playlist: {e}")
+            return False
+    
+    def remove_song_from_playlist(self, playlist_id, song_id):
+        """Removes a song from a specific playlist."""
+        try:
+            result = mongo_db.playlists_collection.update_one(
+                {
+                    '_id': ObjectId(playlist_id),
+                    'user_id': ObjectId(self.id)  # Ensure user owns the playlist
+                },
+                {'$pull': {'songs': ObjectId(song_id)}}
+            )
+            return result.modified_count > 0
+        except Exception as e:
+            print(f"Error removing song from playlist: {e}")
+            return False
+    
+    def delete_playlist(self, playlist_id):
+        """Deletes a user's playlist (except Liked Songs)."""
+        try:
+            # First check if playlist exists and belongs to user
+            playlist = mongo_db.playlists_collection.find_one({
+                '_id': ObjectId(playlist_id),
+                'user_id': ObjectId(self.id)
+            })
+            
+            if not playlist:
+                return False
+            
+            # Don't allow deletion of Liked Songs playlist
+            if playlist.get('name') == 'Liked Songs':
+                return False
+            
+            result = mongo_db.playlists_collection.delete_one({
+                '_id': ObjectId(playlist_id),
+                'user_id': ObjectId(self.id)
+            })
+            
+            return result.deleted_count > 0
+        except Exception as e:
+            print(f"Error deleting playlist: {e}")
+            return False
+    
+    def get_playlist_names(self):
+        """Returns just the names and IDs of user's playlists (excluding Liked Songs)."""
+        try:
+            playlists = []
+            for playlist_doc in mongo_db.playlists_collection.find({
+                'user_id': ObjectId(self.id),
+                'name': {'$ne': 'Liked Songs'}  # Exclude Liked Songs
+            }).sort('name', 1):
+                playlists.append({
+                    'id': str(playlist_doc['_id']),
+                    'name': playlist_doc['name']
+                })
+            return playlists
+        except Exception as e:
+            print(f"Error getting playlist names: {e}")
+            return []
+
+    def get_playlists_for_song(self, song_id):
+        """Returns a list of playlist IDs that contain a specific song for the user."""
+        try:
+            song_object_id = ObjectId(song_id)
+            # Find playlists that belong to the user and contain the song_id
+            playlists = mongo_db.playlists_collection.find({
+                'user_id': ObjectId(self.id),
+                'songs': song_object_id
+            }, {'_id': 1})  # Only retrieve the ID field
+            
+            return [str(p['_id']) for p in playlists]
+        except Exception as e:
+            print(f"Error getting playlists for song {song_id}: {e}")
+            return []        
 
 class Song:
     def __init__(self, title=None, artist=None, genre=None, album=None, file_id=None, filename=None, album_art_id=None, artist_description=None):

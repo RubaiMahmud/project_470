@@ -20,7 +20,7 @@
         <a href="{{ url_for('index') }}" class="nav-link">Home</a>
         <a href="{{ url_for('search') }}" class="nav-link">Search</a>
         <a href="{{ url_for('library') }}" class="nav-link">Library</a>
-        <a href="#" class="nav-link">Playlists</a>
+        
         {% if current_user.is_authenticated and current_user.is_admin %}
           <div class="nav-dropdown">
             <a href="{{ url_for('upload') }}" class="nav-link dropdown-toggle">Upload <i class="fas fa-chevron-down"></i></a>
@@ -64,6 +64,21 @@
               <span id="current-title">Nothing playing</span>
               <span id="current-artist">Select a song to start listening</span>
             </div>
+            {% if current_user.is_authenticated %}
+            <div class="player-actions">
+              <div class="favorite-btn-container">
+                <button class="action-btn favorite-btn" id="player-heart-btn">
+                  <i class="far fa-heart"></i>
+                </button>
+                <div class="playlist-dropdown" style="display: none;">
+                  <div class="playlist-dropdown-content">
+                    <div class="playlist-header">Add to Playlist</div>
+                    <div class="playlist-items"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
           </div>
         </div>
         <div class="player-center">

@@ -43,9 +43,19 @@
         
         <div class="card-actions">
           {% set is_liked = song.id|string in liked_song_ids|map('string') %}
-          <button class="action-btn favorite-btn {{ 'liked' if is_liked }}">
-            <i class="{{ 'fas' if is_liked else 'far' }} fa-heart"></i>
-          </button>
+          <div class="favorite-btn-container">
+            <button class="action-btn favorite-btn {{ 'liked' if is_liked }}">
+              <i class="{{ 'fas' if is_liked else 'far' }} fa-heart"></i>
+            </button>
+            {% if current_user.is_authenticated %}
+            <div class="playlist-dropdown" style="display: none;">
+              <div class="playlist-dropdown-content">
+                <div class="playlist-header">Add to Playlist</div>
+                <div class="playlist-items"></div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
           {% if current_user.is_authenticated and current_user.is_admin %}
             <a href="{{ url_for('edit_song', song_id=song.id) }}" class="action-btn edit-btn">
               <i class="fas fa-edit"></i> Edit

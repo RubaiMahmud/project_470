@@ -6,14 +6,18 @@
     <p class="hero-subtitle"> </p>
     <div class="hero-actions">
       <button class="btn-primary" onclick="playRandomSong()"><i class="fas fa-play"></i> Play something</button>
-      
     </div>
   </div>
 </section>
 
-<section class="featured-section">
+<section class="recent-uploads-section">
   <div class="section-header">
     <h2>Featured</h2>
+    {% if current_user.is_authenticated %}
+    <button class="btn-secondary recently-played-btn" onclick="showRecentlyPlayed()">
+      <i class="fas fa-history"></i> Recently Played
+    </button>
+    {% endif %}
   </div>
   
   <div class="music-grid">
@@ -45,10 +49,19 @@
         </p>
         <div class="card-actions">
           {% set is_liked = song.id|string in liked_song_ids|map('string') %}
-          <button class="action-btn favorite-btn {{ 'liked' if is_liked }}"> {# ADDED liked class #}
-            <i class="{{ 'fas' if is_liked else 'far' }} fa-heart"></i>
-            
-          </button>
+          <div class="favorite-btn-container">
+            <button class="action-btn favorite-btn {{ 'liked' if is_liked }}">
+              <i class="{{ 'fas' if is_liked else 'far' }} fa-heart"></i>
+            </button>
+            {% if current_user.is_authenticated %}
+            <div class="playlist-dropdown" style="display: none;">
+              <div class="playlist-dropdown-content">
+                <div class="playlist-header">Add to Playlist</div>
+                <div class="playlist-items"></div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
           {% if current_user.is_authenticated and current_user.is_admin %}
             <a href="{{ url_for('edit_song', song_id=song.id) }}" class="action-btn edit-btn">
               <i class="fas fa-edit"></i> Edit
@@ -73,4 +86,25 @@
   </div>
   {% endif %}
 </section>
+
+<!-- Recently Played Modal -->
+{% if current_user.is_authenticated %}
+<div id="recently-played-modal" class="modal" style="display: none;">
+  <div class="modal-content recently-played-modal-content">
+    <div class="modal-header">
+      <h3><i class="fas fa-history"></i> Recently Played</h3>
+      <button class="close-btn" onclick="hideRecentlyPlayed()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div id="recently-played-list" class="recently-played-list">
+        <div class="loading-message">
+          <i class="fas fa-spinner fa-spin"></i> Loading recently played songs...
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %}

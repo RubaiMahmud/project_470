@@ -48,8 +48,8 @@ def allowed_image_files(filename):
 
 @app.route('/')
 def index():
-    # Get featured songs (limit to 2 rows - assuming 6 songs per row on desktop)
-    songs = Song.get_featured(limit=12)
+    # Get recently uploaded songs (limit to 2 rows - assuming 6 songs per row on desktop)
+    songs = Song.get_recent_uploads(limit=12)
     liked_song_ids = current_user.get_liked_song_ids() if current_user.is_authenticated else []
     return render_template('index.html', songs=songs, liked_song_ids=liked_song_ids)
 
@@ -67,19 +67,197 @@ def toggle_like(song_id):
     liked = current_user.toggle_like(song_id)
     return jsonify({'liked': liked, 'message': 'Success'})
 
+@app.route('/playlist/create', methods=['POST'])
+@login_required
+def create_playlist():
+    try:
+        data = request.get_json()
+        playlist_name = data.get('name', '').strip()
+        
+        if not playlist_name:
+            return jsonify({'success': False, 'message': 'Playlist name is required'}), 400
+        
+        if playlist_name.lower() == 'liked songs':
+            return jsonify({'success': False, 'message': 'Cannot create playlist with this name'}), 400
+        
+        playlist_id = current_user.create_playlist(playlist_name)
+        
+        if playlist_id:
+            return jsonify({
+                'success': True, 
+                'message': f'Playlist "{playlist_name}" created successfully',
+                'playlist_id': str(playlist_id)
+            })
+        else:
+            return jsonify({'success': False, 'message': 'Playlist with this name already exists'}), 400
+    
+    except Exception as e:
+        print(f"Error creating playlist: {e}")
+        return jsonify({'success': False, 'message': 'Error creating playlist'}), 500
+
+@app.route('/playlist/add', methods=['POST'])
+@login_required
+def add_to_playlist():
+    try:
+        data = request.get_json()
+        playlist_id = data.get('playlist_id')
+        song_id = data.get('song_id')
+        
+        if not playlist_id or not song_id:
+            return jsonify({'success': False, 'message': 'Missing playlist or song ID'}), 400
+        
+        success = current_user.add_song_to_playlist(playlist_id, song_id)
+        
+        if success:
+            return jsonify({'success': True, 'message': 'Song added to playlist'})
+        else:
+            return jsonify({'success': False, 'message': 'Failed to add song to playlist'}), 400
+    
+    except Exception as e:
+        print(f"Error adding to playlist: {e}")
+        return jsonify({'success': False, 'message': 'Error adding song to playlist'}), 500
+
+@app.route('/playlist/remove', methods=['POST'])
+@login_required
+def remove_from_playlist():
+    try:
+        data = request.get_json()
+        playlist_id = data.get('playlist_id')
+        song_id = data.get('song_id')
+        
+        if not playlist_id or not song_id:
+            return jsonify({'success': False, 'message': 'Missing playlist or song ID'}), 400
+        
+        success = current_user.remove_song_from_playlist(playlist_id, song_id)
+        
+        if success:
+            return jsonify({'success': True, 'message': 'Song removed from playlist'})
+        else:
+            return jsonify({'success': False, 'message': 'Failed to remove song from playlist'}), 400
+    
+    except Exception as e:
+        print(f"Error removing from playlist: {e}")
+        return jsonify({'success': False, 'message': 'Error removing song from playlist'}), 500
+
+@app.route('/playlist/delete', methods=['POST'])
+@login_required
+def delete_playlist():
+    try:
+        data = request.get_json()
+        playlist_id = data.get('playlist_id')
+        
+        if not playlist_id:
+            return jsonify({'success': False, 'message': 'Missing playlist ID'}), 400
+        
+        success = current_user.delete_playlist(playlist_id)
+        
+        if success:
+            return jsonify({'success': True, 'message': 'Playlist deleted successfully'})
+        else:
+            return jsonify({'success': False, 'message': 'Failed to delete playlist'}), 400
+    
+    except Exception as e:
+        print(f"Error deleting playlist: {e}")
+        return jsonify({'success': False, 'message': 'Error deleting playlist'}), 500
+
+@app.route('/api/playlists', methods=['GET'])
+@login_required
+def get_user_playlists():
+    try:
+        playlists = current_user.get_playlist_names()
+        return jsonify({'success': True, 'playlists': playlists})
+    except Exception as e:
+        print(f"Error getting playlists: {e}")
+        return jsonify({'success': False, 'message': 'Error fetching playlists'}), 500
+
+@app.route('/api/track-play', methods=['POST'])
+@login_required
+def track_song_play():
+    """Track when a user plays a song for recently played functionality."""
+    try:
+        data = request.get_json()
+        song_id = data.get('song_id')
+        
+        if not song_id:
+            return jsonify({'success': False, 'message': 'Missing song ID'}), 400
+        
+        success = current_user.add_to_recently_played(song_id)
+        
+        if success:
+            return jsonify({'success': True, 'message': 'Song play tracked'})
+        else:
+            return jsonify({'success': False, 'message': 'Failed to track song play'}), 400
+    
+    except Exception as e:
+        print(f"Error tracking song play: {e}")
+        return jsonify({'success': False, 'message': 'Error tracking song play'}), 500
+
+@app.route('/api/recently-played', methods=['GET'])
+@login_required
+def get_recently_played():
+    """Get the user's recently played songs."""
+    try:
+        songs = current_user.get_recently_played_songs()
+        songs_data = []
+        
+        for song in songs:
+            songs_data.append({
+                'id': song.id,
+                'title': song.title,
+                'artist': song.artist,
+                'album': song.album,
+                'genre': song.genre,
+                'album_art_id': song.album_art_id,
+                'file_id': song.file_id
+            })
+        
+        return jsonify({'success': True, 'songs': songs_data})
+    except Exception as e:
+        print(f"Error getting recently played: {e}")
+        return jsonify({'success': False, 'message': 'Error fetching recently played songs'}), 500
+
 @app.route('/library')
 @login_required
 def library():
+    # Get all user playlists including Liked Songs
+    all_playlists = current_user.get_all_playlists()
+    
+    # Ensure Liked Songs is first
+    liked_songs_playlist = None
+    other_playlists = []
+    
+    for playlist in all_playlists:
+        if playlist['name'] == 'Liked Songs':
+            liked_songs_playlist = playlist
+        else:
+            other_playlists.append(playlist)
+    
+    # If no liked songs playlist exists, create it
+    if not liked_songs_playlist:
+        liked_song_ids = current_user.get_liked_song_ids()
+        liked_songs = Song.get_songs_by_ids(liked_song_ids)
+        liked_songs_playlist = {
+            'name': 'Liked Songs',
+            'song_count': len(liked_songs),
+            'songs': liked_songs
+        }
+    
+    # Arrange playlists with Liked Songs first
+    playlists = [liked_songs_playlist] + other_playlists
+    
     liked_song_ids = current_user.get_liked_song_ids()
-    liked_songs = Song.get_songs_by_ids(liked_song_ids)
-    
-    
-    playlists = [{
-        'name': 'Liked Songs',
-        'song_count': len(liked_songs),
-        'songs': liked_songs
-    }]
     return render_template('library.html', playlists=playlists, liked_song_ids=liked_song_ids)
+    
+@app.route('/api/song/<song_id>/playlists', methods=['GET'])
+@login_required
+def get_song_playlists(song_id):
+    """Check which of the user's playlists a given song is in."""
+    try:
+        playlist_ids = current_user.get_playlists_for_song(song_id)
+        return jsonify({'success': True, 'playlist_ids': playlist_ids})
+    except Exception as e:
+        print(f"Error getting song's playlists: {e}")
+        return jsonify({'success': False, 'message': 'An error occurred while fetching song playlists'}), 500
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -579,4 +757,4 @@ def serve_artist_photo(file_id):
         return '', 404
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=8000)
