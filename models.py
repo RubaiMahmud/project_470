@@ -1,9 +1,11 @@
 from pymongo import MongoClient
+from pymongo import MongoClient
 from gridfs import GridFS
 from bson import ObjectId
 from datetime import datetime
 from flask_login import UserMixin
 import re
+import ssl
 
 class MongoDB:
     def __init__(self):
@@ -16,18 +18,35 @@ class MongoDB:
         self.artists_collection = None
 
     def init_app(self, app):
-        self.client = MongoClient(app.config['MONGO_URI'])
-        self.db = self.client[app.config['MONGO_DB_NAME']]
-        self.fs = GridFS(self.db)
-        self.songs_collection = self.db.songs
-        self.users_collection = self.db.users
-        self.playlists_collection = self.db.playlists
-        self.artists_collection = self.db.artists
-        self.albums_collection = self.db.albums  # For album descriptions
+        try:
+            # Create SSL context for MongoDB Atlas
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+            
+            self.client = MongoClient(
+                app.config['MONGO_URI'],
+                ssl_context=ssl_context,
+                serverSelectionTimeoutMS=30000,
+                connectTimeoutMS=30000,
+                socketTimeoutMS=30000
+            )
+            self.db = self.client[app.config['MONGO_DB_NAME']]
+            self.fs = GridFS(self.db)
+            self.songs_collection = self.db.songs
+            self.users_collection = self.db.users
+            self.playlists_collection = self.db.playlists
+            self.artists_collection = self.db.artists
+            self.albums_collection = self.db.albums  # For album descriptions
 
-        self.songs_collection.create_index([('title', 'text'), ('artist', 'text'), ('genre', 'text')])
-        self.artists_collection.create_index([('name', 'text')])
-        self.albums_collection.create_index([('name', 'text'), ('artist', 'text')])  # Index for album info
+            self.songs_collection.create_index([('title', 'text'), ('artist', 'text'), ('genre', 'text')])
+            self.artists_collection.create_index([('name', 'text')])
+            self.albums_collection.create_index([('name', 'text'), ('artist', 'text')])  # Index for album info
+            
+            print("Successfully connected to MongoDB Atlas!")
+        except Exception as e:
+            print(f"Error connecting to MongoDB: {e}")
+            raise
 
 mongo_db = MongoDB()
 
