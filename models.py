@@ -23,9 +23,11 @@ class MongoDB:
         self.users_collection = self.db.users
         self.playlists_collection = self.db.playlists
         self.artists_collection = self.db.artists
+        self.albums_collection = self.db.albums  # For album descriptions
 
         self.songs_collection.create_index([('title', 'text'), ('artist', 'text'), ('genre', 'text')])
         self.artists_collection.create_index([('name', 'text')])
+        self.albums_collection.create_index([('name', 'text'), ('artist', 'text')])  # Index for album info
 
 mongo_db = MongoDB()
 
@@ -407,6 +409,79 @@ class Song:
         return songs
     
     @staticmethod
+    def get_recent_albums(limit=4):
+        """Get recently uploaded albums with their songs."""
+        albums = []
+        
+        # Get albums ordered by the most recent song upload in each album
+        pipeline = [
+            {'$match': {'album': {'$ne': None, '$ne': ''}}},  # Only songs with albums
+            {'$sort': {'upload_date': -1}},  # Sort by upload date descending
+            {'$group': {
+                '_id': {'album': '$album', 'artist': '$artist'},
+                'latest_upload': {'$first': '$upload_date'},
+                'album_art_id': {'$first': '$album_art_id'},
+                'songs': {'$push': '$$ROOT'}  # Collect all songs in the album
+            }},
+            {'$sort': {'latest_upload': -1}},  # Sort albums by latest upload
+            {'$limit': limit}
+        ]
+        
+        for album_doc in mongo_db.songs_collection.aggregate(pipeline):
+            album_info = {
+                'name': album_doc['_id']['album'],
+                'artist': album_doc['_id']['artist'],
+                'album_art_id': str(album_doc['album_art_id']) if album_doc.get('album_art_id') else None,
+                'latest_upload': album_doc['latest_upload'],
+                'songs': []
+            }
+            
+            # Convert song documents to Song objects
+            for song_doc in album_doc['songs']:
+                song = Song(
+                    title=song_doc['title'], artist=song_doc['artist'], genre=song_doc['genre'],
+                    album=song_doc.get('album'), file_id=str(song_doc['file_id']), filename=song_doc['filename'],
+                    album_art_id=str(song_doc['album_art_id']) if song_doc.get('album_art_id') else None,
+                    artist_description=song_doc.get('artist_description')
+                )
+                song.id = str(song_doc['_id'])
+                song.upload_date = song_doc.get('upload_date')
+                album_info['songs'].append(song)
+            
+            # Sort songs within album by track order or upload date
+            album_info['songs'].sort(key=lambda s: s.upload_date or datetime.min, reverse=False)
+            album_info['song_count'] = len(album_info['songs'])
+            albums.append(album_info)
+        
+        return albums
+    
+    @staticmethod
+    def get_random_songs(limit=15):
+        """Get random songs from the database."""
+        try:
+            # Use MongoDB's $sample aggregation to get random songs efficiently
+            pipeline = [
+                {'$sample': {'size': limit}}
+            ]
+            
+            songs = []
+            for song_doc in mongo_db.songs_collection.aggregate(pipeline):
+                song = Song(
+                    title=song_doc['title'], artist=song_doc['artist'], genre=song_doc['genre'],
+                    album=song_doc.get('album'), file_id=str(song_doc['file_id']), filename=song_doc['filename'],
+                    album_art_id=str(song_doc['album_art_id']) if song_doc.get('album_art_id') else None,
+                    artist_description=song_doc.get('artist_description')
+                )
+                song.id = str(song_doc['_id'])
+                song.upload_date = song_doc.get('upload_date')
+                songs.append(song)
+            
+            return songs
+        except Exception as e:
+            print(f"Error getting random songs: {e}")
+            return []
+    
+    @staticmethod
     def get_artist_info(artist_name):
         """Get artist information and their songs."""
         try:
@@ -432,12 +507,32 @@ class Song:
                 song.id = str(song_doc['_id'])
                 songs.append(song)
             
+            # Get unique albums with album art and metadata
+            albums_dict = {}
+            for song in songs:
+                if song.album and song.album.strip():
+                    if song.album not in albums_dict:
+                        albums_dict[song.album] = {
+                            'name': song.album,
+                            'artist': song.artist,
+                            'album_art_id': song.album_art_id,
+                            'song_count': 0,
+                            'latest_upload': getattr(song, 'upload_date', None)
+                        }
+                    albums_dict[song.album]['song_count'] += 1
+                    # Keep the latest album art
+                    if song.album_art_id:
+                        albums_dict[song.album]['album_art_id'] = song.album_art_id
+            
+            # Convert to list
+            albums_with_art = list(albums_dict.values())
+            
             return {
                 'name': artist_song['artist'],
                 'description': artist_song.get('artist_description', ''),
                 'songs': songs,
                 'total_songs': len(songs),
-                'albums': list(set([song.album for song in songs if song.album]))
+                'albums': albums_with_art
             }
         except Exception as e:
             print(f"Error getting artist info: {e}")
@@ -593,3 +688,49 @@ class Artist:
         ]
         result = list(mongo_db.songs_collection.aggregate(pipeline))
         return result[0]['total'] if result else 0
+
+    @staticmethod
+    def get_album_info(album_name, artist_name):
+        """Get album information including description."""
+        try:
+            album_doc = mongo_db.albums_collection.find_one({
+                'name': album_name,
+                'artist': {'$regex': f'^{re.escape(artist_name)}$', '$options': 'i'}
+            })
+            return album_doc
+        except Exception as e:
+            print(f"Error getting album info: {e}")
+            return None
+    
+    @staticmethod
+    def save_album_info(album_name, artist_name, description):
+        """Save or update album information."""
+        try:
+            album_data = {
+                'name': album_name,
+                'artist': artist_name,
+                'description': description,
+                'updated_date': datetime.utcnow()
+            }
+            
+            # Check if album info already exists
+            existing_album = mongo_db.albums_collection.find_one({
+                'name': album_name,
+                'artist': {'$regex': f'^{re.escape(artist_name)}$', '$options': 'i'}
+            })
+            
+            if existing_album:
+                # Update existing album info
+                result = mongo_db.albums_collection.update_one(
+                    {'_id': existing_album['_id']},
+                    {'$set': album_data}
+                )
+                return result.modified_count > 0
+            else:
+                # Create new album info
+                album_data['created_date'] = datetime.utcnow()
+                result = mongo_db.albums_collection.insert_one(album_data)
+                return result.inserted_id is not None
+        except Exception as e:
+            print(f"Error saving album info: {e}")
+            return False

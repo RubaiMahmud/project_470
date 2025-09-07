@@ -485,10 +485,260 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('recently-played-modal')?.addEventListener('click', function(e) { if (e.target === this) hideRecentlyPlayed(); });
 
     window.playRandomSong = function() {
-        const allMusicCards = document.querySelectorAll('.music-card');
+        const allMusicCards = document.querySelectorAll('.music-card, .album-card');
         if (allMusicCards.length > 0) {
             const randomIndex = Math.floor(Math.random() * allMusicCards.length);
             playSong(allMusicCards[randomIndex]);
+        }
+    };
+    
+    // Album Popup Functions
+    window.showAlbumPopup = async function(albumName, artistName) {
+        const modal = document.getElementById('album-modal');
+        if (!modal) return;
+        
+        modal.style.display = 'flex';
+        
+        // Update modal header
+        document.getElementById('album-title').textContent = albumName;
+        document.getElementById('album-artist').textContent = artistName;
+        
+        try {
+            const response = await fetch(`/api/album/${encodeURIComponent(albumName)}/${encodeURIComponent(artistName)}`);
+            const data = await response.json();
+            
+            const listContainer = document.getElementById('album-songs-list');
+            
+            if (data.success && data.album.songs.length > 0) {
+                const album = data.album;
+                
+                // Update album art in header
+                const albumArtHeader = document.getElementById('album-art-header');
+                if (album.album_art_id) {
+                    albumArtHeader.innerHTML = `<img src="/album_art/${album.album_art_id}" alt="${album.name} Album Art" onclick="playAlbum()">`;
+                } else {
+                    albumArtHeader.innerHTML = '<i class="fas fa-compact-disc"></i>';
+                }
+                
+                // Update song count
+                document.getElementById('album-song-count').textContent = `${album.song_count} songs`;
+                
+                // Store album data for playing
+                window.currentAlbumData = album;
+                
+                // Update album about section if user is admin
+                updateAlbumAboutSection(album);
+                
+                // Create song list
+                listContainer.innerHTML = '';
+                album.songs.forEach((song, index) => {
+                    const item = createAlbumSongItem(song, index + 1);
+                    listContainer.appendChild(item);
+                });
+            } else {
+                listContainer.innerHTML = `
+                    <div class="empty-message">
+                        <i class="fas fa-compact-disc"></i>
+                        <p>No songs found in this album.</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error loading album details:', error);
+            document.getElementById('album-songs-list').innerHTML = `
+                <div class="empty-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Error loading album songs.</p>
+                </div>
+            `;
+        }
+    };
+    
+    window.hideAlbumPopup = function() {
+        const modal = document.getElementById('album-modal');
+        if (modal) {
+            modal.style.display = 'none';
+            window.currentAlbumData = null;
+        }
+    };
+    
+    window.playAlbum = function() {
+        if (window.currentAlbumData && window.currentAlbumData.songs.length > 0) {
+            const firstSong = window.currentAlbumData.songs[0];
+            const songContainer = createSongContainerFromData(firstSong);
+            playSong(songContainer);
+            hideAlbumPopup();
+        }
+    };
+    
+    function createAlbumSongItem(song, trackNumber) {
+        const item = document.createElement('div');
+        item.className = 'album-song-item';
+        item.setAttribute('data-url', `/stream/${song.file_id}`);
+        item.setAttribute('data-title', song.title);
+        item.setAttribute('data-artist', song.artist);
+        item.setAttribute('data-album', song.album || '');
+        item.setAttribute('data-genre', song.genre);
+        item.setAttribute('data-album-art-id', song.album_art_id || '');
+        item.setAttribute('data-song-id', song.id);
+        
+        item.innerHTML = `
+            <div class="song-number">${trackNumber}</div>
+            <div class="album-song-details">
+                <div class="album-song-title">${song.title}</div>
+                <div class="album-song-meta">${song.genre}</div>
+            </div>
+            <div class="album-song-actions">
+                <button class="album-song-play-btn">
+                    <i class="fas fa-play"></i>
+                </button>
+            </div>
+        `;
+        
+        // Add click handler for playing the song
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            playSong(item);
+            hideAlbumPopup();
+        });
+        
+        return item;
+    }
+    
+    function createSongContainerFromData(song) {
+        const container = document.createElement('div');
+        container.setAttribute('data-url', `/stream/${song.file_id}`);
+        container.setAttribute('data-title', song.title);
+        container.setAttribute('data-artist', song.artist);
+        container.setAttribute('data-album', song.album || '');
+        container.setAttribute('data-genre', song.genre);
+        container.setAttribute('data-album-art-id', song.album_art_id || '');
+        container.setAttribute('data-song-id', song.id);
+        return container;
+    }
+    
+    // Close modals when clicking outside
+    document.getElementById('album-modal')?.addEventListener('click', function(e) { 
+        if (e.target === this) hideAlbumPopup(); 
+    });
+    
+    // Album About Section Functions
+    function updateAlbumAboutSection(album) {
+        const descriptionText = document.getElementById('album-description-text');
+        const descriptionDisplay = document.getElementById('album-description-display');
+        const aboutSection = document.getElementById('album-about-section');
+        
+        if (!descriptionText || !descriptionDisplay || !aboutSection) return;
+        
+        if (album.has_description && album.description.trim()) {
+            // Show description for all users
+            descriptionText.textContent = album.description;
+            descriptionText.classList.remove('no-description');
+            descriptionDisplay.style.display = 'block';
+            aboutSection.style.display = 'block';
+        } else {
+            // Check if user is admin by looking for the edit button
+            const editBtn = document.getElementById('edit-album-btn');
+            const isAdmin = editBtn !== null;
+            
+            if (isAdmin) {
+                // For admins, show "No description available" and allow editing
+                descriptionText.textContent = 'No description available.';
+                descriptionText.classList.add('no-description');
+                descriptionDisplay.style.display = 'block';
+                aboutSection.style.display = 'block';
+            } else {
+                // For regular users, hide the entire about section if no description
+                aboutSection.style.display = 'none';
+            }
+        }
+    }
+    
+    window.toggleAlbumEdit = function() {
+        const displayDiv = document.getElementById('album-description-display');
+        const editForm = document.getElementById('album-edit-form');
+        const editBtn = document.getElementById('edit-album-btn');
+        const descriptionText = document.getElementById('album-description-text');
+        const descriptionInput = document.getElementById('album-description-input');
+        
+        if (displayDiv && editForm && editBtn && descriptionInput) {
+            // Switch to edit mode
+            displayDiv.style.display = 'none';
+            editForm.style.display = 'block';
+            editBtn.style.display = 'none';
+            
+            // Pre-fill the textarea with current description
+            const currentText = descriptionText.textContent;
+            if (currentText && currentText !== 'No description available.') {
+                descriptionInput.value = currentText;
+            } else {
+                descriptionInput.value = '';
+            }
+            
+            // Focus on the textarea
+            descriptionInput.focus();
+        }
+    };
+    
+    window.cancelAlbumEdit = function() {
+        const displayDiv = document.getElementById('album-description-display');
+        const editForm = document.getElementById('album-edit-form');
+        const editBtn = document.getElementById('edit-album-btn');
+        
+        if (displayDiv && editForm && editBtn) {
+            // Switch back to display mode
+            displayDiv.style.display = 'block';
+            editForm.style.display = 'none';
+            editBtn.style.display = 'inline-flex';
+        }
+    };
+    
+    window.saveAlbumDescription = async function() {
+        const descriptionInput = document.getElementById('album-description-input');
+        const descriptionText = document.getElementById('album-description-text');
+        
+        if (!descriptionInput || !window.currentAlbumData) return;
+        
+        const description = descriptionInput.value.trim();
+        const albumName = window.currentAlbumData.name;
+        const artistName = window.currentAlbumData.artist;
+        
+        try {
+            const response = await fetch(`/api/album/${encodeURIComponent(albumName)}/${encodeURIComponent(artistName)}/info`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ description: description })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Update the display
+                if (description) {
+                    descriptionText.textContent = description;
+                    descriptionText.classList.remove('no-description');
+                } else {
+                    descriptionText.textContent = 'No description available.';
+                    descriptionText.classList.add('no-description');
+                }
+                
+                // Update current album data
+                window.currentAlbumData.description = description;
+                window.currentAlbumData.has_description = !!description;
+                
+                // Switch back to display mode
+                cancelAlbumEdit();
+                
+                // Show success message (you can implement a toast notification here)
+                console.log('Album description saved successfully');
+            } else {
+                alert('Failed to save album description: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Error saving album description:', error);
+            alert('Error saving album description. Please try again.');
         }
     };
 });

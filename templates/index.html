@@ -20,8 +20,53 @@
     {% endif %}
   </div>
   
+  <div class="albums-grid">
+    {% for album in albums %}
+    <div class="album-card" onclick="showAlbumPopup('{{ album.name }}', '{{ album.artist }}')"
+         data-album="{{ album.name }}" data-artist="{{ album.artist }}">
+      <div class="album-card-image">
+        {% if album.album_art_id %}
+          <div class="album-art">
+            <img src="{{ url_for('serve_album_art', file_id=album.album_art_id) }}" alt="{{ album.name }} Album Art">
+          </div>
+        {% else %}
+          <div class="album-art"><i class="fas fa-compact-disc"></i></div>
+        {% endif %}
+        <div class="play-overlay">
+          <button class="card-play-btn"><i class="fas fa-play"></i></button>
+        </div>
+      </div>
+      <div class="album-card-content">
+        <h3 class="album-title">{{ album.name }}</h3>
+        <p class="album-meta">
+          <a href="{{ url_for('artist_page', artist_name=album.artist|urlencode) }}" class="artist-link">{{ album.artist }}</a>
+          <span class="separator">•</span>
+          <span class="song-count">{{ album.song_count }} songs</span>
+        </p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  
+  {% if not albums %}
+  <div class="empty-state">
+    <i class="fas fa-compact-disc"></i>
+    <h3>No albums yet</h3>
+    <p>Upload some music with album information to see recent albums here.</p>
+    {% if current_user.is_authenticated and current_user.is_admin %}
+      <a href="{{ url_for('upload') }}" class="btn-primary"><i class="fas fa-upload"></i> Upload Music</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+
+<section class="discover-section">
+  <div class="section-header">
+    <h2>Discover</h2>
+  </div>
+  
   <div class="music-grid">
-    {% for song in songs %}
+    {% for song in discover_songs %}
     <div class="music-card" 
          data-url="{{ url_for('stream_audio', file_id=song.file_id) }}"
          data-title="{{ song.title }}"
@@ -39,35 +84,39 @@
           <div class="album-art"><i class="fas fa-music"></i></div>
         {% endif %}
         <div class="play-overlay">
-          <button class="card-play-btn"><i class="fas fa-play"></i></button> {# REMOVED onclick #}
+          <button class="card-play-btn">
+            <i class="fas fa-play"></i>
+          </button>
         </div>
       </div>
+      
       <div class="music-card-content">
         <h3 class="song-title">{{ song.title }}</h3>
         <p class="song-meta">
           <a href="{{ url_for('artist_page', artist_name=song.artist|urlencode) }}" class="artist-link">{{ song.artist }}</a>{% if song.album %} • {{ song.album }}{% endif %} • {{ song.genre }}
         </p>
+        
         <div class="card-actions">
-          {% set is_liked = song.id|string in liked_song_ids|map('string') %}
+          {% if current_user.is_authenticated %}
           <div class="favorite-btn-container">
+            {% set is_liked = song.id|string in liked_song_ids|map('string') %}
             <button class="action-btn favorite-btn {{ 'liked' if is_liked }}">
               <i class="{{ 'fas' if is_liked else 'far' }} fa-heart"></i>
             </button>
-            {% if current_user.is_authenticated %}
             <div class="playlist-dropdown" style="display: none;">
               <div class="playlist-dropdown-content">
                 <div class="playlist-header">Add to Playlist</div>
                 <div class="playlist-items"></div>
               </div>
             </div>
-            {% endif %}
           </div>
+          {% endif %}
           {% if current_user.is_authenticated and current_user.is_admin %}
             <a href="{{ url_for('edit_song', song_id=song.id) }}" class="action-btn edit-btn">
               <i class="fas fa-edit"></i> Edit
             </a>
-            <form method="POST" action="{{ url_for('delete_song', song_id=song.id) }}" onsubmit="return confirm('Are you sure?');">
-              <button type="submit" class="action-btn delete-btn"><i class="fas fa-trash"></i> Delete</button>
+            <form method="POST" action="{{ url_for('delete_song', song_id=song.id) }}" onsubmit="return confirm('Are you sure?');" style="display: inline;">
+              <button type="submit" class="action-btn delete-btn"><i class="fas fa-trash"></i></button>
             </form>
           {% endif %}
         </div>
@@ -76,10 +125,11 @@
     {% endfor %}
   </div>
   
-  {% if not songs %}
+  {% if not discover_songs %}
   <div class="empty-state">
-    <i class="fas fa-music"></i>
-    <h3>No music yet</h3>
+    <i class="fas fa-search"></i>
+    <h3>No songs to discover</h3>
+    <p>Upload some music to start discovering new songs.</p>
     {% if current_user.is_authenticated and current_user.is_admin %}
       <a href="{{ url_for('upload') }}" class="btn-primary"><i class="fas fa-upload"></i> Upload Music</a>
     {% endif %}
@@ -107,4 +157,64 @@
   </div>
 </div>
 {% endif %}
+
+<!-- Album Popup Modal -->
+<div id="album-modal" class="modal" style="display: none;">
+  <div class="modal-content album-modal-content">
+    <div class="modal-header">
+      <div class="album-header-info">
+        <div id="album-art-header" class="album-art-header">
+          <i class="fas fa-compact-disc"></i>
+        </div>
+        <div class="album-details">
+          <h3 id="album-title">Album Title</h3>
+          <p id="album-artist">Artist Name</p>
+          <p id="album-song-count">0 songs</p>
+        </div>
+      </div>
+      <div class="album-actions">
+        <button class="btn-primary album-play-btn" onclick="playAlbum()">
+          <i class="fas fa-play"></i> Play Album
+        </button>
+        <button class="close-btn" onclick="hideAlbumPopup()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div id="album-about-section" class="album-about-section">
+        <div class="album-about-header">
+          <h4>About This Album</h4>
+          {% if current_user.is_authenticated and current_user.is_admin %}
+          <button id="edit-album-btn" class="btn-secondary edit-album-btn" onclick="toggleAlbumEdit()">
+            <i class="fas fa-edit"></i> Edit
+          </button>
+          {% endif %}
+        </div>
+        <div id="album-description-display" class="album-description-display">
+          <p id="album-description-text" class="album-description-text">No description available.</p>
+        </div>
+        {% if current_user.is_authenticated and current_user.is_admin %}
+        <div id="album-edit-form" class="album-edit-form" style="display: none;">
+          <textarea id="album-description-input" class="album-description-input" 
+                    placeholder="Enter album description..." rows="4"></textarea>
+          <div class="album-edit-actions">
+            <button class="btn-primary" onclick="saveAlbumDescription()">
+              <i class="fas fa-save"></i> Save
+            </button>
+            <button class="btn-secondary" onclick="cancelAlbumEdit()">
+              <i class="fas fa-times"></i> Cancel
+            </button>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      <div id="album-songs-list" class="album-songs-list">
+        <div class="loading-message">
+          <i class="fas fa-spinner fa-spin"></i> Loading album songs...
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

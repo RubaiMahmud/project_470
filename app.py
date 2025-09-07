@@ -48,10 +48,12 @@ def allowed_image_files(filename):
 
 @app.route('/')
 def index():
-    # Get recently uploaded songs (limit to 2 rows - assuming 6 songs per row on desktop)
-    songs = Song.get_recent_uploads(limit=12)
+    # Get recently uploaded albums for featured section
+    albums = Song.get_recent_albums(limit=4)
+    # Get random songs for discover section
+    discover_songs = Song.get_random_songs(limit=15)
     liked_song_ids = current_user.get_liked_song_ids() if current_user.is_authenticated else []
-    return render_template('index.html', songs=songs, liked_song_ids=liked_song_ids)
+    return render_template('index.html', albums=albums, discover_songs=discover_songs, liked_song_ids=liked_song_ids)
 
 @app.route('/search', methods=['GET', 'POST'])
 def search():
@@ -215,6 +217,101 @@ def get_recently_played():
     except Exception as e:
         print(f"Error getting recently played: {e}")
         return jsonify({'success': False, 'message': 'Error fetching recently played songs'}), 500
+
+@app.route('/api/album/<album_name>/<artist_name>', methods=['GET'])
+def get_album_details(album_name, artist_name):
+    """Get album details with all songs for the popup."""
+    try:
+        # Find all songs in the specified album by the artist
+        album_songs = []
+        query = {
+            'album': album_name,
+            'artist': {'$regex': f'^{re.escape(artist_name)}$', '$options': 'i'}
+        }
+        
+        songs_cursor = mongo_db.songs_collection.find(query).sort('upload_date', 1)
+        
+        album_art_id = None
+        for song_doc in songs_cursor:
+            song = Song(
+                title=song_doc['title'], artist=song_doc['artist'], genre=song_doc['genre'],
+                album=song_doc.get('album'), file_id=str(song_doc['file_id']), filename=song_doc['filename'],
+                album_art_id=str(song_doc['album_art_id']) if song_doc.get('album_art_id') else None,
+                artist_description=song_doc.get('artist_description')
+            )
+            song.id = str(song_doc['_id'])
+            song.upload_date = song_doc.get('upload_date')
+            album_songs.append(song)
+            
+            # Get album art from first song that has it
+            if not album_art_id and song_doc.get('album_art_id'):
+                album_art_id = str(song_doc['album_art_id'])
+        
+        if not album_songs:
+            return jsonify({'success': False, 'message': 'Album not found'}), 404
+        
+        # Prepare response data
+        songs_data = []
+        for song in album_songs:
+            songs_data.append({
+                'id': song.id,
+                'title': song.title,
+                'artist': song.artist,
+                'album': song.album,
+                'genre': song.genre,
+                'album_art_id': song.album_art_id,
+                'file_id': song.file_id
+            })
+        
+        album_data = {
+            'name': album_name,
+            'artist': artist_name,
+            'album_art_id': album_art_id,
+            'song_count': len(album_songs),
+            'songs': songs_data
+        }
+        
+        # Get album info (description) if available
+        album_info = Artist.get_album_info(album_name, artist_name)
+        if album_info:
+            album_data['description'] = album_info.get('description', '')
+            album_data['has_description'] = bool(album_info.get('description', '').strip())
+        else:
+            album_data['description'] = ''
+            album_data['has_description'] = False
+        
+        return jsonify({'success': True, 'album': album_data})
+    except Exception as e:
+        print(f"Error getting album details: {e}")
+        return jsonify({'success': False, 'message': 'Error fetching album details'}), 500
+
+@app.route('/api/album/<album_name>/<artist_name>/info', methods=['POST'])
+@admin_required
+def save_album_info(album_name, artist_name):
+    """Save album information (description) - Admin only."""
+    try:
+        data = request.get_json()
+        description = data.get('description', '').strip()
+        
+        success = Artist.save_album_info(album_name, artist_name, description)
+        
+        if success:
+            return jsonify({
+                'success': True, 
+                'message': 'Album information saved successfully'
+            })
+        else:
+            return jsonify({
+                'success': False, 
+                'message': 'Failed to save album information'
+            }), 400
+    
+    except Exception as e:
+        print(f"Error saving album info: {e}")
+        return jsonify({
+            'success': False, 
+            'message': 'Error saving album information'
+        }), 500
 
 @app.route('/library')
 @login_required

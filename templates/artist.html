@@ -160,6 +160,24 @@
   color: #10b981;
 }
 
+.info-genre-list {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #e5e7eb;
+  line-height: 1.4;
+}
+
+.genre-item {
+  display: inline;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.genre-item:hover {
+  color: #c4b5fd;
+}
+
 .genre-tags h3 {
   margin: 0 0 1rem 0;
   color: #e5e7eb;
@@ -432,66 +450,62 @@
         </div>
       </div>
       
-      {% if artist.albums %}
       <div class="info-card">
         <div class="info-icon">
           <i class="fas fa-compact-disc"></i>
         </div>
         <div class="info-content">
           <h3>Albums</h3>
-          <p class="info-number">{{ artist.albums|length }}</p>
-          <span class="info-label">Release{{ 's' if artist.albums|length != 1 else '' }} in catalog</span>
+          <p class="info-number">{{ artist.albums|length if artist.albums else 0 }}</p>
+          <span class="info-label">Release{{ 's' if (artist.albums|length if artist.albums else 0) != 1 else '' }} in catalog</span>
         </div>
       </div>
-      {% endif %}
       
       <div class="info-card">
         <div class="info-icon">
           <i class="fas fa-tags"></i>
         </div>
         <div class="info-content">
-          <h3>Genres</h3>
-          <p class="info-number">{{ artist.songs|map(attribute='genre')|unique|list|length }}</p>
-          <span class="info-label">Musical style{{ 's' if artist.songs|map(attribute='genre')|unique|list|length != 1 else '' }}</span>
-        </div>
-      </div>
-      
-      {% set artist_data = artist.name|get_artist_data %}
-      <div class="info-card">
-        <div class="info-icon">
-          <i class="fas fa-calendar-alt"></i>
-        </div>
-        <div class="info-content">
-          <h3>Profile</h3>
-          <p class="info-status">{{ 'Enhanced' if artist_data and artist_data.photo_id else 'Basic' }}</p>
-          <span class="info-label">{{ 'Complete artist profile' if artist_data and artist_data.photo_id else 'Standard profile' }}</span>
+          <h3>Genre</h3>
+          {% set unique_genres = artist.songs|map(attribute='genre')|unique|list %}
+          {% if unique_genres %}
+            <p class="info-genre-list">
+              {% for genre in unique_genres %}
+                <span class="genre-item">{{ genre }}</span>{% if not loop.last %}, {% endif %}
+              {% endfor %}
+            </p>
+          {% else %}
+            <p class="info-genre-list">No genres</p>
+          {% endif %}
+          <span class="info-label">Musical style{{ 's' if unique_genres|length > 1 else '' }}</span>
         </div>
       </div>
     </div>
-    
-    {% if artist.songs|map(attribute='genre')|unique|list|length > 0 %}
-    <div class="genre-tags">
-      <h3>Musical Genres</h3>
-      <div class="tags-container">
-        {% for genre in artist.songs|map(attribute='genre')|unique|list %}
-          <span class="genre-tag">
-            <i class="fas fa-music"></i>
-            {{ genre }}
-          </span>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
   </div>
 
   {% if artist.albums %}
     <div class="artist-albums">
       <h2>Albums</h2>
-      <div class="albums-list">
+      <div class="artist-albums-grid">
         {% for album in artist.albums %}
-          <div class="album-chip">
-            <i class="fas fa-compact-disc"></i>
-            {{ album }}
+          <div class="artist-album-card" onclick="showAlbumPopup('{{ album.name }}', '{{ album.artist }}')"
+               data-album="{{ album.name }}" data-artist="{{ album.artist }}">
+            <div class="artist-album-card-image">
+              {% if album.album_art_id %}
+                <div class="artist-album-art">
+                  <img src="{{ url_for('serve_album_art', file_id=album.album_art_id) }}" alt="{{ album.name }} Album Art">
+                </div>
+              {% else %}
+                <div class="artist-album-art"><i class="fas fa-compact-disc"></i></div>
+              {% endif %}
+              <div class="artist-album-play-overlay">
+                <button class="artist-album-play-btn"><i class="fas fa-play"></i></button>
+              </div>
+            </div>
+            <div class="artist-album-card-content">
+              <h4 class="artist-album-title">{{ album.name }}</h4>
+              <p class="artist-album-meta">{{ album.song_count }} song{{ 's' if album.song_count != 1 else '' }}</p>
+            </div>
           </div>
         {% endfor %}
       </div>
@@ -660,4 +674,64 @@ document.getElementById('editArtistModal').addEventListener('click', function(e)
 });
 </script>
 {% endif %}
+
+<!-- Album Popup Modal -->
+<div id="album-modal" class="modal" style="display: none;">
+  <div class="modal-content album-modal-content">
+    <div class="modal-header">
+      <div class="album-header-info">
+        <div id="album-art-header" class="album-art-header">
+          <i class="fas fa-compact-disc"></i>
+        </div>
+        <div class="album-details">
+          <h3 id="album-title">Album Title</h3>
+          <p id="album-artist">Artist Name</p>
+          <p id="album-song-count">0 songs</p>
+        </div>
+      </div>
+      <div class="album-actions">
+        <button class="btn-primary album-play-btn" onclick="playAlbum()">
+          <i class="fas fa-play"></i> Play Album
+        </button>
+        <button class="close-btn" onclick="hideAlbumPopup()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div id="album-about-section" class="album-about-section">
+        <div class="album-about-header">
+          <h4>About This Album</h4>
+          {% if current_user.is_authenticated and current_user.is_admin %}
+          <button id="edit-album-btn" class="btn-secondary edit-album-btn" onclick="toggleAlbumEdit()">
+            <i class="fas fa-edit"></i> Edit
+          </button>
+          {% endif %}
+        </div>
+        <div id="album-description-display" class="album-description-display">
+          <p id="album-description-text" class="album-description-text">No description available.</p>
+        </div>
+        {% if current_user.is_authenticated and current_user.is_admin %}
+        <div id="album-edit-form" class="album-edit-form" style="display: none;">
+          <textarea id="album-description-input" class="album-description-input" 
+                    placeholder="Enter album description..." rows="4"></textarea>
+          <div class="album-edit-actions">
+            <button class="btn-primary" onclick="saveAlbumDescription()">
+              <i class="fas fa-save"></i> Save
+            </button>
+            <button class="btn-secondary" onclick="cancelAlbumEdit()">
+              <i class="fas fa-times"></i> Cancel
+            </button>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      <div id="album-songs-list" class="album-songs-list">
+        <div class="loading-message">
+          <i class="fas fa-spinner fa-spin"></i> Loading album songs...
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
