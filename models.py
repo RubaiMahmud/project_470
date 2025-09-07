@@ -5,7 +5,6 @@ from bson import ObjectId
 from datetime import datetime
 from flask_login import UserMixin
 import re
-import ssl
 
 class MongoDB:
     def __init__(self):
@@ -19,15 +18,9 @@ class MongoDB:
 
     def init_app(self, app):
         try:
-            # Create SSL context for MongoDB Atlas
-            ssl_context = ssl.create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
-            
+            # MongoDB connection with simplified SSL configuration
             self.client = MongoClient(
                 app.config['MONGO_URI'],
-                ssl=True,
-                ssl_cert_reqs=ssl.CERT_NONE, 
                 serverSelectionTimeoutMS=30000,
                 connectTimeoutMS=30000,
                 socketTimeoutMS=30000
