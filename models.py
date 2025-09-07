@@ -26,11 +26,13 @@ class MongoDB:
             
             self.client = MongoClient(
                 app.config['MONGO_URI'],
-                ssl_context=ssl_context,
+                ssl=True,
+                ssl_cert_reqs=ssl.CERT_NONE, 
                 serverSelectionTimeoutMS=30000,
                 connectTimeoutMS=30000,
                 socketTimeoutMS=30000
             )
+
             self.db = self.client[app.config['MONGO_DB_NAME']]
             self.fs = GridFS(self.db)
             self.songs_collection = self.db.songs
