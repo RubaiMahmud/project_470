@@ -18,9 +18,6 @@ class MongoDB:
 
     def init_app(self, app):
         try:
-            # Debug: Print the actual URI being used
-            print(f"[MODELS DEBUG] Attempting to connect to: {app.config['MONGO_URI'][:50]}...")
-            
             # MongoDB connection with simplified SSL configuration
             self.client = MongoClient(
                 app.config['MONGO_URI'],
