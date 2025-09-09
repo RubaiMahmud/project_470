@@ -46,6 +46,51 @@ MONGO_DB_NAME=music_app
 ```
 You can override defaults in `config.py`.
 
+## 📸 Screenshots
+
+### 🏠 **Homepage**
+<div align="center">
+  <img src="/Users/rubaimahmud/Screenshots/screenshot_app/home_page.png" alt="Homepage" width="800"/>
+ 
+</div>
+
+### **Discover Section**
+<div align="center">
+  <img src="/Users/rubaimahmud/Screenshots/screenshot_app.png" alt="Discover Section" width="800"/>
+ 
+</div>
+
+### **Admin Panel**
+<div align="center">
+  <img src="/Users/rubaimahmud/Screenshots/screenshot_app/admin_edit_panel.png" alt="Admin Panel" width="800"/>
+
+</div>
+
+### **Like Songs**
+<div align="center">
+  <img src="/Users/rubaimahmud/Screenshots/screenshot_app/like_songs.png" alt="Like Songs" width="800"/>
+  
+</div>
+
+### **Playlists**
+<div align="center">
+  <img src="/Users/rubaimahmud/Screenshots/screenshot_app/playlist.png" alt="PLaylist" width="800"/>
+ 
+</div>
+
+### **Artist Info**
+<div align="center">
+  <img src="/Users/rubaimahmud/Screenshots/screenshot_app/artist_info.png" alt="Artist info" width="800"/>
+
+</div>
+
+### **Artist Upload**
+<div align="center">
+  <img src="/Users/rubaimahmud/Screenshots/screenshot_app/admin_upload.png" alt="Admin Upload" width="800"/>
+
+</div>
+
+
 ## Installation (macOS / Linux)
 1. Clone repository:
    ```
@@ -80,9 +125,7 @@ You can override defaults in `config.py`.
 
 ## Usage notes
 - Login / registration handled via flask-login; admin users have elevated routes.
-- Audio assets are streamed from GridFS. When uploading songs, the file is stored into GridFS and referenced by ObjectId.
-- The global player reads the song list from DOM elements containing data attributes (data-url / data-id). Next/previous behavior follows DOM order.
-- To modify player behavior (shuffle, repeat, queue), edit `static/js/player.js`.
+- Audio assets are streamed from GridFS. When uploading songs, the file is stored into GridFS 
 
 ## Admin and data management
 - Admin routes allow uploading songs, adding artists and albums, and editing metadata.
@@ -113,5 +156,7 @@ You can override defaults in `config.py`.
 - Do not commit secrets to the repository. Use `.env` for secret keys and connection strings.
 - Validate uploaded files and sanitize metadata inputs.
 
-## License
-MIT License — add a LICENSE file if you want an explicit copy.
+**Your Name**
+- GitHub: [@RubaiMahmud](https://github.com/RubaiMahmud)
+- Email: mafrubai@gmail.com
+
