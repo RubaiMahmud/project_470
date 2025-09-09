@@ -49,6 +49,8 @@ You can override defaults in `config.py`.
 ## 📸 Screenshots
 
 ### 🏠 **Homepage**
+<img width="1710" height="988" alt="home_page" src="https://github.com/user-attachments/assets/588a4ad7-4ff8-485d-b788-7214337f95bc" />
+
 <div align="center">
   <img src="/Users/rubaimahmud/Screenshots/screenshot_app/home_page.png" alt="Homepage" width="800"/>
  
