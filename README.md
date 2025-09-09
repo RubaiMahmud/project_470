@@ -51,46 +51,31 @@ You can override defaults in `config.py`.
 ### 🏠 **Homepage**
 <img width="1710" height="988" alt="home_page" src="https://github.com/user-attachments/assets/588a4ad7-4ff8-485d-b788-7214337f95bc" />
 
-<div align="center">
-  <img src="/Users/rubaimahmud/Screenshots/screenshot_app/home_page.png" alt="Homepage" width="800"/>
- 
-</div>
 
 ### **Discover Section**
-<div align="center">
-  <img src="/Users/rubaimahmud/Screenshots/screenshot_app.png" alt="Discover Section" width="800"/>
- 
-</div>
+<img width="1710" height="989" alt="discover_section" src="https://github.com/user-attachments/assets/5fa3fa99-a70e-40c0-b000-0a0af68dd56d" />
+
 
 ### **Admin Panel**
-<div align="center">
-  <img src="/Users/rubaimahmud/Screenshots/screenshot_app/admin_edit_panel.png" alt="Admin Panel" width="800"/>
+<img width="1710" height="989" alt="admin_edit_panel" src="https://github.com/user-attachments/assets/3aa62399-458a-444e-9f25-e22925a7d73c" />
 
-</div>
 
 ### **Like Songs**
-<div align="center">
-  <img src="/Users/rubaimahmud/Screenshots/screenshot_app/like_songs.png" alt="Like Songs" width="800"/>
-  
-</div>
+<img width="1710" height="988" alt="like_songs" src="https://github.com/user-attachments/assets/6386c967-c161-40c7-881a-3bbf0fcd9a2a" />
+
 
 ### **Playlists**
-<div align="center">
-  <img src="/Users/rubaimahmud/Screenshots/screenshot_app/playlist.png" alt="PLaylist" width="800"/>
- 
-</div>
+<img width="1710" height="989" alt="liked_songs" src="https://github.com/user-attachments/assets/0f89d89d-069d-42a8-8264-346637ae8def" />
+
 
 ### **Artist Info**
-<div align="center">
-  <img src="/Users/rubaimahmud/Screenshots/screenshot_app/artist_info.png" alt="Artist info" width="800"/>
+<img width="1710" height="989" alt="artist_info" src="https://github.com/user-attachments/assets/d2209a04-cb8f-4cc8-94f1-90ee84410826" />
 
-</div>
 
-### **Artist Upload**
-<div align="center">
-  <img src="/Users/rubaimahmud/Screenshots/screenshot_app/admin_upload.png" alt="Admin Upload" width="800"/>
+### **Admin Upload**
+<img width="1710" height="986" alt="admin_upload" src="https://github.com/user-attachments/assets/6095721f-a437-4d3b-ae12-8ec179cead11" />
+<img width="1710" height="988" alt="upload_form" src="https://github.com/user-attachments/assets/18c93dc9-fc35-458a-ab85-55a673e6e3ce" />
 
-</div>
 
 
 ## Installation (macOS / Linux)
