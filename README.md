@@ -123,11 +123,6 @@ You can override defaults in `config.py`.
   - Audio: mp3, flac, wav
   - Images: png, jpg, jpeg, gif, webp, svg
 
-## Testing / Development tips
-- Use a development copy of MongoDB for testing.
-- To seed the DB, either use the admin UI or write a small script to insert documents and store files in GridFS.
-- For debugging, consult the Flask terminal output and the browser DevTools console.
-
 ## Troubleshooting
 - Module import error for flask-login:
   ```
@@ -136,15 +131,6 @@ You can override defaults in `config.py`.
 - MongoDB connection issues: check `MONGO_URI` and that mongod is running.
 - Audio not playing: verify GridFS storage and that returned file routes stream bytes correctly.
 - flask-login user loader errors: ensure `models.MongoDB.init_app` sets `users_collection` and `mongo_db` is initialized before login_manager is used.
-
-## Contributing
-- Fork and create focused PRs.
-- Include tests for new logic where practical.
-- Keep UI/style changes separate from backend logic changes for easier review.
-
-## Security & Privacy
-- Do not commit secrets to the repository. Use `.env` for secret keys and connection strings.
-- Validate uploaded files and sanitize metadata inputs.
 
 **Your Name**
 - GitHub: [@RubaiMahmud](https://github.com/RubaiMahmud)
