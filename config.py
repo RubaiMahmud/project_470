@@ -11,3 +11,4 @@ class Config:
     MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017/')
     MONGO_DB_NAME = 'music_app'
     
+   

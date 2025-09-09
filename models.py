@@ -5,6 +5,7 @@ from bson import ObjectId
 from datetime import datetime
 from flask_login import UserMixin
 import re
+import ssl
 
 class MongoDB:
     def __init__(self):
