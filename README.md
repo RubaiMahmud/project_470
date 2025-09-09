@@ -71,6 +71,9 @@ You can override defaults in `config.py`.
 ### **Artist Info**
 <img width="1710" height="989" alt="artist_info" src="https://github.com/user-attachments/assets/d2209a04-cb8f-4cc8-94f1-90ee84410826" />
 
+## **Search Songs/Genre/Artist**
+<img width="1710" height="989" alt="search" src="https://github.com/user-attachments/assets/cb694b6c-588c-4a0a-8520-f57e591f4d7b" />
+
 
 ### **Admin Upload**
 <img width="1710" height="986" alt="admin_upload" src="https://github.com/user-attachments/assets/6095721f-a437-4d3b-ae12-8ec179cead11" />
